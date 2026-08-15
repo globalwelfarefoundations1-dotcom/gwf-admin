@@ -50,9 +50,9 @@ function App() {
               onClick={() => useAdminStore.getState().setPage('profile')}
               className="flex items-center gap-2 rounded-lg p-1.5 hover:bg-stone-100"
             >
-              <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[#d9aa3f] text-xs font-semibold text-stone-900">AM</span>
+              <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[#d9aa3f] text-xs font-semibold text-stone-900">AK</span>
               <span className="hidden flex-col items-start leading-tight sm:flex">
-                <strong className="text-sm text-stone-900">Amara Mensah</strong>
+                <strong className="text-sm text-stone-900">Ashok Kumar</strong>
                 <small className="text-xs text-stone-400">Administrator</small>
               </span>
               <ChevronDown size={15} className="hidden text-stone-400 sm:block" />

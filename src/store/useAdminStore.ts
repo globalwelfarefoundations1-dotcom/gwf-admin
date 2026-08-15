@@ -76,7 +76,7 @@ export const api = {
   login: async (email: string, password: string) => {
     await wait(900);
     if (!email.trim() || !password.trim()) throw new Error('Please enter your email and password.');
-    return { name: 'Amara Mensah', email, token: 'dummy-jwt-token' };
+    return { name: 'Ashok Kumar Sabat', email, token: 'dummy-jwt-token' };
   },
   fetchProjects: async (): Promise<Project[]> => {
     await wait(600);
@@ -166,8 +166,8 @@ export const useAdminStore = create<AdminState>((set, get) => ({
   authLoading: false,
   authError: '',
   currentUser: {
-    name: 'Amara Mensah',
-    email: 'amara.mensah@gwf.org',
+    name: 'Ashok Kumar Sabat',
+    email: 'ashok.kumar@gwf.org',
     phone: '+233 24 555 0193',
   },
 
@@ -204,7 +204,7 @@ export const useAdminStore = create<AdminState>((set, get) => ({
           name: user.name,
           email: user.email,
         },
-        toast: 'Welcome back, Amara.',
+        toast: 'Welcome back, Ashok Kumar.',
       });
 
       get().loadProjects();

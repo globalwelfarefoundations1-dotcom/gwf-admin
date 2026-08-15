@@ -22,7 +22,7 @@ function Login() {
   return (
     <div className="flex min-h-screen w-full flex-col lg:flex-row">
       {/* Left brand panel - hidden on mobile, visible from lg breakpoint up */}
-      <div className="relative hidden w-full flex-col justify-between overflow-hidden bg-stone-900 p-10 text-stone-50 lg:flex lg:w-1/2 xl:p-16">
+      <div className="relative hidden w-full flex-col justify-between overflow-hidden bg-stone-900 p-10 text-stone-50 lg:flex lg:w-1/2 xl:p-10">
         <div
           className="pointer-events-none absolute inset-0 opacity-20"
           style={{ background: 'radial-gradient(circle at 20% 20%, #d9aa3f 0%, transparent 55%)' }}
@@ -71,11 +71,15 @@ function Login() {
       <div className="flex w-full flex-1 items-center justify-center bg-stone-50 px-4 py-10 sm:px-8 lg:w-1/2">
         <div className="w-full max-w-sm rounded-2xl border border-stone-200 bg-white p-6 shadow-sm sm:p-8">
           <div className="mb-6 flex flex-col items-center text-center lg:items-start lg:text-left">
-            <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-lg bg-[#d9aa3f] text-sm font-bold text-stone-900 lg:hidden">
-              GWF
+            <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-[#d9aa3f] text-sm font-bold text-stone-900 lg:hidden">
+              <img
+                src={Logo}
+                alt="Global Welfare Foundation"
+                className="h-auto w-32 object-contain sm:w-36 lg:w-40 xl:w-48"
+              />
             </div>
-            <h1 className="text-2xl font-semibold text-stone-900">Welcome back</h1>
-            <p className="mt-1 text-sm text-stone-500">Sign in to the Global Welfare Foundation admin portal.</p>
+            <h1 className="text-xl font-semibold text-stone-900">Welcome back</h1>
+            <p className="mt-1 text-xs text-stone-500">Sign in to the Global Welfare Foundation admin portal.</p>
           </div>
 
           <form onSubmit={submit} noValidate className="flex flex-col gap-4">

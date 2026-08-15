@@ -54,7 +54,7 @@ export function Dashboard() {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <p className="text-xs font-semibold uppercase tracking-wide text-[#b98a2c]">SATURDAY, 15 AUGUST 2026</p>
-          <h2 className="mt-1 text-2xl font-semibold text-stone-900">Good morning, Amara.</h2>
+          <h2 className="mt-1 text-2xl font-semibold text-stone-900">Good morning, Ashok Kumar.</h2>
           <p className="mt-1 text-sm text-stone-500">Here's what's happening across your foundation today.</p>
         </div>
         <button

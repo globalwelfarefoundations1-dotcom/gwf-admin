@@ -1,13 +1,15 @@
 import { useState, type FormEvent } from 'react';
 import { Eye, EyeOff, Lock, Mail, ShieldCheck } from 'lucide-react';
 import { useAdminStore } from '../store/useAdminStore';
+// @ts-ignore: allow importing image asset without type declaration
+import Logo from "../assets/logo.png";
 
 function Login() {
   const login = useAdminStore((state) => state.login);
   const authLoading = useAdminStore((state) => state.authLoading);
   const authError = useAdminStore((state) => state.authError);
 
-  const [email, setEmail] = useState('amara.mensah@gwf.org');
+  const [email, setEmail] = useState('ashok.kumar@gwf.org');
   const [password, setPassword] = useState('gwf-admin-2026');
   const [show, setShow] = useState(false);
   const [remember, setRemember] = useState(true);
@@ -25,17 +27,22 @@ function Login() {
           className="pointer-events-none absolute inset-0 opacity-20"
           style={{ background: 'radial-gradient(circle at 20% 20%, #d9aa3f 0%, transparent 55%)' }}
         />
-        <div className="relative flex items-center gap-3">
-          <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#d9aa3f] font-bold text-stone-900">
+        <div className="relative flex items-center justify-center gap-3">
+          <img
+            src={Logo}
+            alt="Global Welfare Foundation"
+            className="h-auto w-32 object-contain sm:w-36 lg:w-40 xl:w-48"
+          />
+          {/* <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#d9aa3f] font-bold text-stone-900">
             GWF
           </div>
           <div className="flex flex-col leading-tight">
             <strong className="text-sm tracking-wide">GLOBAL WELFARE</strong>
             <span className="text-xs text-stone-400">FOUNDATION</span>
-          </div>
+          </div> */}
         </div>
 
-        <div className="relative max-w-md">
+        <div className="relative max-w-md text-center  m-[auto]">
           <h2 className="text-3xl font-semibold leading-tight xl:text-4xl">
             Building stronger communities, one initiative at a time.
           </h2>

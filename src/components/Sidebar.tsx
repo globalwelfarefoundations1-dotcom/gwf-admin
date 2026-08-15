@@ -8,6 +8,8 @@ import {
   X,
 } from 'lucide-react';
 import { useAdminStore, type Page } from '../store/useAdminStore';
+// @ts-ignore: allow importing image asset without type declaration
+import Logo from "../assets/logo.png";
 
 export function SidebarBackdrop() {
   const sidebarOpen = useAdminStore((s) => s.sidebarOpen);
@@ -42,23 +44,23 @@ export function Sidebar() {
     icon: React.ReactNode;
     count?: number;
   }[] = [
-    {
-      id: 'dashboard',
-      label: 'Overview',
-      icon: <LayoutDashboard size={19} />,
-    },
-    {
-      id: 'projects',
-      label: 'Projects',
-      icon: <FolderKanban size={19} />,
-      count: projects.length,
-    },
-    {
-      id: 'categories',
-      label: 'Categories',
-      icon: <Grid2X2 size={19} />,
-    },
-  ];
+      {
+        id: 'dashboard',
+        label: 'Overview',
+        icon: <LayoutDashboard size={19} />,
+      },
+      {
+        id: 'projects',
+        label: 'Projects',
+        icon: <FolderKanban size={19} />,
+        count: projects.length,
+      },
+      {
+        id: 'categories',
+        label: 'Categories',
+        icon: <Grid2X2 size={19} />,
+      },
+    ];
 
   /**
    * Menu click behavior:
@@ -125,13 +127,17 @@ export function Sidebar() {
           className="
             flex h-10 w-10 shrink-0
             items-center justify-center
-            rounded-xl
+            rounded-full
             bg-[#d9aa3f]
             text-sm font-bold
             text-stone-900
           "
         >
-          GWF
+          <img
+            src={Logo}
+            alt="Global Welfare Foundation"
+            className="h-auto w-12 object-contain sm:w-16 lg:w-10 xl:w-18"
+          />
         </div>
 
         {/* Brand text
@@ -199,10 +205,9 @@ export function Sidebar() {
               text-sm font-medium
               transition-colors
 
-              ${
-                page === item.id
-                  ? 'bg-[#d9aa3f] text-stone-900'
-                  : 'text-stone-300 hover:bg-stone-800'
+              ${page === item.id
+                ? 'bg-[#d9aa3f] text-stone-900'
+                : 'text-stone-300 hover:bg-stone-800'
               }
 
               /* Only center icons on collapsed desktop */
@@ -275,10 +280,9 @@ export function Sidebar() {
             text-sm font-medium
             transition-colors
 
-            ${
-              page === 'profile'
-                ? 'bg-[#d9aa3f] text-stone-900'
-                : 'text-stone-300 hover:bg-stone-800'
+            ${page === 'profile'
+              ? 'bg-[#d9aa3f] text-stone-900'
+              : 'text-stone-300 hover:bg-stone-800'
             }
 
             ${collapsed ? 'lg:justify-center' : ''}

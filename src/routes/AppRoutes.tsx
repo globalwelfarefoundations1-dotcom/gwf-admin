@@ -6,62 +6,104 @@ import {
 
 import Login from "../components/Login";
 
-import { DashboardPage } from "../pages/dashboard";
-import { ProjectPage } from "../pages/projects";
-import { CategoryPage } from "../pages/categories";
-import { ProfilePage } from "../pages/profile";
+import {
+  DashboardPage,
+} from "../pages/dashboard";
 
-import { ProtectedRoute } from "./ProtectedRoute";
-import { AdminRoute } from "./RouteGuard";
+import {
+  ProjectPage,
+} from "../pages/projects";
 
-import { AdminLayout } from "../layouts/AdminLayout";
+import {
+  CategoryPage,
+} from "../pages/categories";
 
-import { NotFound } from "../pages/NotFound";
-import { Unauthorized } from "../pages/Unauthorized";
+import {
+  ProfilePage,
+} from "../pages/profile";
+
+import {
+  ProtectedRoute,
+} from "./ProtectedRoute";
+
+import {
+  AdminRoute,
+} from "./RouteGuard";
+
+import {
+  AdminLayout,
+} from "../layouts/AdminLayout";
+
+import {
+  NotFound,
+} from "../pages/NotFound";
+
+import {
+  Unauthorized,
+} from "../pages/Unauthorized";
 
 export function AppRoutes() {
+
   return (
     <Routes>
 
-      {/* ----------------------------- */}
+      {/* ================================================== */}
       {/* PUBLIC */}
-      {/* ----------------------------- */}
+      {/* ================================================== */}
 
       <Route
         path="/login"
         element={<Login />}
       />
 
-      {/* ----------------------------- */}
+      {/* ================================================== */}
       {/* PROTECTED */}
-      {/* ----------------------------- */}
+      {/* ================================================== */}
 
-      <Route element={<ProtectedRoute />}>
+      <Route
+        element={
+          <ProtectedRoute />
+        }
+      >
 
-        <Route element={<AdminRoute />}>
+        <Route
+          element={
+            <AdminRoute />
+          }
+        >
 
           <Route
-            element={<AdminLayout />}
+            element={
+              <AdminLayout />
+            }
           >
 
             <Route
               path="/dashboard"
-              element={<DashboardPage />}
+              element={
+                <DashboardPage />
+              }
             />
 
             <Route
               path="/projects"
-              element={<ProjectPage />}
+              element={
+                <ProjectPage />
+              }
             />
 
             <Route
               path="/categories"
-              element={<CategoryPage />}
+              element={
+                <CategoryPage />
+              }
             />
 
             <Route
               path="/profile"
-              element={<ProfilePage />}
+              element={
+                <ProfilePage />
+              }
             />
 
           </Route>
@@ -70,18 +112,20 @@ export function AppRoutes() {
 
       </Route>
 
-      {/* ----------------------------- */}
+      {/* ================================================== */}
       {/* UNAUTHORIZED */}
-      {/* ----------------------------- */}
+      {/* ================================================== */}
 
       <Route
         path="/unauthorized"
-        element={<Unauthorized />}
+        element={
+          <Unauthorized />
+        }
       />
 
-      {/* ----------------------------- */}
+      {/* ================================================== */}
       {/* ROOT */}
-      {/* ----------------------------- */}
+      {/* ================================================== */}
 
       <Route
         path="/"
@@ -93,13 +137,15 @@ export function AppRoutes() {
         }
       />
 
-      {/* ----------------------------- */}
+      {/* ================================================== */}
       {/* 404 */}
-      {/* ----------------------------- */}
+      {/* ================================================== */}
 
       <Route
         path="*"
-        element={<NotFound />}
+        element={
+          <NotFound />
+        }
       />
 
     </Routes>

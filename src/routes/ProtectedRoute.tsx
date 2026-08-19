@@ -3,10 +3,11 @@ import { useAdminStore } from "../store/useAdminStore";
 
 export function ProtectedRoute() {
   const isAuthenticated = useAdminStore(
-    (state) => state.isAuthenticated
+    (state) => state.accessToken
   );
 
   const location = useLocation();
+console.log(isAuthenticated,'isAuthenticated');
 
   if (!isAuthenticated) {
     return (

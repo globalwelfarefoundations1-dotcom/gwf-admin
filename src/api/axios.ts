@@ -6,14 +6,12 @@ import axios, {
 import { useAdminStore } from "../store/useAdminStore";
 import { authService } from "./services/authService";
 
-export const API_BASE_URL =
-    "https://gfw-backend.onrender.com/api";
+const API_BASE_URL1 = import.meta.env.VITE_API_BASE_URL;
 
 export const axiosInstance = axios.create({
-    baseURL: API_BASE_URL,
+    baseURL: API_BASE_URL1,
     headers: {
         "Content-Type": "application/json",
-        Accept: "*/*",
     },
     timeout: 30000,
 });

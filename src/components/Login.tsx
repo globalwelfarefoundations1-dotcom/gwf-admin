@@ -37,11 +37,11 @@ function Login() {
   const { success, error } = useToast();
 
   const [email, setEmail] = useState(
-    "ashok.kumar@gwf.org"
+    "globalwelfarefoundations1@gmail.com"
   );
 
   const [password, setPassword] = useState(
-    "gwf-admin-2026"
+    "12345"
   );
 
   const [show, setShow] = useState(false);

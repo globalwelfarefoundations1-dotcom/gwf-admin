@@ -1,10 +1,10 @@
-import { Check, Info, TriangleAlert, X } from "lucide-react";
-import { useEffect } from "react";
-import { useAdminStore } from "../store/useAdminStore";
+import { Check, Info, TriangleAlert, X } from 'lucide-react';
+import { useEffect } from 'react';
+import { useToastStore } from '../store/toastStore';
 
 export function ToastContainer() {
-  const toast = useAdminStore((state) => state.toast);
-  const clearToast = useAdminStore((state) => state.clearToast);
+  const toast = useToastStore((state) => state.toast);
+  const clearToast = useToastStore((state) => state.clearToast);
 
   useEffect(() => {
     if (!toast) return;
@@ -13,30 +13,34 @@ export function ToastContainer() {
       clearToast();
     }, 3200);
 
-    return () => window.clearTimeout(timer);
+    return () => {
+      window.clearTimeout(timer);
+    };
   }, [toast, clearToast]);
 
-  if (!toast) return null;
+  if (!toast) {
+    return null;
+  }
 
   const config = {
     success: {
       icon: <Check size={15} />,
-      iconBg: "bg-emerald-500",
+      iconBg: 'bg-emerald-500',
     },
 
     error: {
       icon: <TriangleAlert size={15} />,
-      iconBg: "bg-red-500",
+      iconBg: 'bg-red-500',
     },
 
     warning: {
       icon: <TriangleAlert size={15} />,
-      iconBg: "bg-amber-500",
+      iconBg: 'bg-amber-500',
     },
 
     info: {
       icon: <Info size={15} />,
-      iconBg: "bg-blue-500",
+      iconBg: 'bg-blue-500',
     },
   };
 
@@ -57,6 +61,7 @@ export function ToastContainer() {
       <button
         type="button"
         onClick={clearToast}
+        aria-label="Close notification"
         className="shrink-0 text-stone-400 transition hover:text-white"
       >
         <X size={15} />

@@ -18,6 +18,7 @@ import { useToast } from "../hooks/useToast";
 
 // @ts-ignore
 import Logo from "../assets/logo.png";
+import { toast } from "@/store/toastStore";
 
 function Login() {
   const navigate = useNavigate();
@@ -71,17 +72,15 @@ function Login() {
     );
 
     if (successLogin) {
-      success(
-        "Welcome back! Login successful."
-      );
-
+      toast('Welcome back! Login successful', 'success');
       navigate("/dashboard", {
         replace: true,
       });
+      return window.location.reload();
     } else {
-      error(
+      toast(
         useAdminStore.getState().authError ??
-        "Invalid email or password."
+        "Invalid email or password.", 'error'
       );
     }
   };

@@ -4,6 +4,7 @@ import type {
   LoginUser,
   LoginResponse,
 } from "../api/apiTypes";
+import { toast } from "./toastStore";
 
 export type Page =
   | "dashboard"
@@ -143,9 +144,9 @@ export const useAdminStore = create<AdminState>(
 
     isAdmin:
       initialUser?.role?.toLowerCase() ===
-        "admin" ||
+      "admin" ||
       initialUser?.role?.toLowerCase() ===
-        "administrator" ||
+      "administrator" ||
       Boolean(initialAccessToken),
 
     accessToken: initialAccessToken,
@@ -259,9 +260,9 @@ export const useAdminStore = create<AdminState>(
           isAuthenticated: true,
           isAdmin:
             user?.role?.toLowerCase() ===
-              "admin" ||
+            "admin" ||
             user?.role?.toLowerCase() ===
-              "administrator" ||
+            "administrator" ||
             true,
           accessToken,
           refreshToken,
@@ -293,6 +294,7 @@ export const useAdminStore = create<AdminState>(
     // -----------------------------------------
 
     logout: () => {
+      toast('Logged out successfully!', 'success');
       localStorage.removeItem(
         ACCESS_TOKEN_KEY
       );

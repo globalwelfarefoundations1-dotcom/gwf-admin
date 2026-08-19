@@ -1,170 +1,62 @@
-import { useEffect, useMemo, useRef, useState, type FormEvent, type DragEvent } from 'react';
+import { useEffect, useRef, useState, type DragEvent, type FormEvent } from 'react';
+
 import {
-  Archive, ChevronLeft, ChevronRight, Eye, ImageIcon, Link2, ListFilter, Loader2,
-  Pencil, Plus, Sparkles, Trash2,
+  Archive,
+  ChevronLeft,
+  ChevronRight,
+  Eye,
+  ImageIcon,
+  Link2,
+  ListFilter,
+  Loader2,
+  Pencil,
+  Plus,
+  Trash2,
   Upload,
   Video,
   X,
 } from 'lucide-react';
-import { ProjectPhoto, ProjectVideo, useAdminStore, type Project, type ProjectStatus } from '../store/useAdminStore';
-import { BtnPrimary, BtnSecondary, Detail, Field, inputClass, Modal, ModalActions, SearchBar, StatusBadge } from './Shared';
 
-export function Projects() {
-  const { projects, categories, projectsLoading, loadProjects, deleteProject, mutating } = useAdminStore();
-  const [query, setQuery] = useState('');
-  const [status, setStatus] = useState('All status');
-  const [category, setCategory] = useState('All categories');
-  const [modal, setModal] = useState<'add' | 'edit' | 'view' | null>(null);
-  const [selected, setSelected] = useState<Project | null>(null);
+import { useProjectStore, type ProjectFormValue } from '../store/projectStore';
+import { useCategoryStore } from '../store/categoryStore';
+import {
+  BtnPrimary,
+  BtnSecondary,
+  Detail,
+  Field,
+  inputClass,
+  Modal,
+  ModalActions,
+  SearchBar,
+  StatusBadge,
+} from './Shared';
+import type { ProjectStatus, ProjectUi } from '../types/project';
+import Loading from './loading';
+import DeleteConfirmationModal from './deleteModal';
 
-  useEffect(() => { if (projects.length === 0) loadProjects(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+/* -------------------------------------------------------------------------- */
+/* Types                                                                      */
+/* -------------------------------------------------------------------------- */
 
-  const filtered = useMemo(
-    () =>
-      projects.filter(
-        (p) =>
-          `${p.name} ${p.client}`.toLowerCase().includes(query.toLowerCase()) &&
-          (status === 'All status' || p.status === status) &&
-          (category === 'All categories' || p.category === category)
-      ),
-    [projects, query, status, category]
-  );
+type ModalMode = 'add' | 'edit' | 'view';
 
-  const open = (kind: 'add' | 'edit' | 'view', project?: Project) => {
-    setSelected(project ?? null);
-    setModal(kind);
-  };
-
-  const filtersActive = query || status !== 'All status' || category !== 'All categories';
-
-  return (
-    <div className="flex flex-col gap-6">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-wide text-[#b98a2c]">WORKSPACE / PROJECTS</p>
-          <h2 className="mt-1 text-2xl font-semibold text-stone-900">Projects</h2>
-          <p className="mt-1 text-sm text-stone-500">Manage, publish and track every foundation initiative.</p>
-        </div>
-        <button
-          onClick={() => open('add')}
-          className="inline-flex w-fit items-center gap-2 rounded-lg bg-[#d9aa3f] px-4 py-2.5 text-sm font-semibold text-stone-900 hover:bg-[#c99a34]"
-        >
-          <Plus size={17} /> Add project
-        </button>
-      </div>
-
-      {/* Toolbar: stacked on mobile, row from sm */}
-      <div className="flex flex-col flex-wrap gap-3 sm:flex-row sm:items-center">
-        <SearchBar value={query} onChange={setQuery} placeholder="Search projects..." />
-        <div className="flex items-center gap-2 rounded-lg border border-stone-300 bg-white px-3 py-2">
-          <ListFilter size={16} className="text-stone-400" />
-          <select value={status} onChange={(e) => setStatus(e.target.value)} className="bg-transparent text-sm outline-none w-full">
-            <option>All status</option>
-            <option>Published</option>
-            <option>Active</option>
-            <option>Draft</option>
-            <option>Inactive</option>
-          </select>
-        </div>
-        <div className="rounded-lg border border-stone-300 bg-white px-3 py-2">
-          <select value={category} onChange={(e) => setCategory(e.target.value)} className="bg-transparent text-sm outline-none w-full">
-            <option>All categories</option>
-            {categories.map((c) => (
-              <option key={c.id}>{c.name}</option>
-            ))}
-          </select>
-        </div>
-        {filtersActive && (
-          <button
-            onClick={() => { setQuery(''); setStatus('All status'); setCategory('All categories'); }}
-            className="text-sm font-medium text-[#b98a2c] hover:underline"
-          >
-            Clear filters
-          </button>
-        )}
-      </div>
-
-      <div className="rounded-2xl border border-stone-200 bg-white">
-
-        {projectsLoading ? (
-          <div className="flex items-center justify-center gap-2 py-16 text-stone-400">
-            <Loader2 size={18} className="animate-spin" /> Loading projects...
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[720px] text-left text-sm">
-              <thead>
-                <tr className="border-b border-stone-100 text-xs uppercase tracking-wide text-stone-400">
-                  <th className="px-5 py-3 font-medium">Project name</th>
-                  <th className="px-5 py-3 font-medium">Category</th>
-                  <th className="px-5 py-3 font-medium">Status</th>
-                  <th className="px-5 py-3 font-medium">Created</th>
-                  <th className="px-5 py-3 font-medium">Last updated</th>
-                  <th className="px-5 py-3" />
-                </tr>
-              </thead>
-              <tbody>
-                {filtered.map((project) => (
-                  <tr key={project.id} className="border-b border-stone-50 last:border-0 hover:bg-stone-50/60">
-                    <td className="px-5 py-3">
-                      <div className="flex items-center gap-3">
-                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#d9aa3f]/15 text-sm font-semibold text-[#b98a2c]">
-                          {project.image}
-                        </div>
-                        <div className="min-w-0">
-                          <strong className="block truncate text-stone-900">{project.name}</strong>
-                          <small className="text-xs text-stone-500">{project.client}</small>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-5 py-3 text-stone-600">{project.category}</td>
-                    <td className="px-5 py-3"><StatusBadge status={project.status} /></td>
-                    <td className="px-5 py-3 text-stone-500">{project.date}</td>
-                    <td className="px-5 py-3 text-stone-500">{project.updated}</td>
-                    <td className="px-5 py-3">
-                      <div className="flex items-center justify-end gap-1">
-                        <button title="View" onClick={() => open('view', project)} className="rounded-lg p-1.5 text-stone-400 hover:bg-stone-100 hover:text-stone-700"><Eye size={16} /></button>
-                        <button title="Edit" onClick={() => open('edit', project)} className="rounded-lg p-1.5 text-stone-400 hover:bg-stone-100 hover:text-stone-700"><Pencil size={16} /></button>
-                        <button title="Archive" onClick={() => deleteProject(project.id)} className="rounded-lg p-1.5 text-stone-400 hover:bg-red-50 hover:text-red-600"><Trash2 size={16} /></button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-
-        {!projectsLoading && filtered.length === 0 && (
-          <div className="flex flex-col items-center gap-2 py-16 text-stone-400">
-            <Archive size={30} />
-            <strong className="text-stone-600">No projects found</strong>
-            <span className="text-sm">Try adjusting your search or filters.</span>
-          </div>
-        )}
-
-        <div className="flex items-center justify-between px-5 py-3 text-sm text-stone-500">
-          {/* <span>Page 1 of 1</span> */}
-          <div className="flex items-center justify-between border-b border-stone-100 px-5 py-3 text-sm text-stone-500">
-            <span>Showing <strong className="text-stone-900">{filtered.length}</strong> of <strong className="text-stone-900">{projects.length}</strong> projects</span>
-          </div>
-          <div className="flex items-center gap-1">
-            <button disabled className="rounded-lg border border-stone-200 p-1.5 opacity-40"><ChevronLeft size={16} /></button>
-            <button className="rounded-lg bg-[#d9aa3f] px-2.5 py-1 text-xs font-semibold text-stone-900">1</button>
-            <button disabled className="rounded-lg border border-stone-200 p-1.5 opacity-40"><ChevronRight size={16} /></button>
-          </div>
-        </div>
-      </div>
-
-      {modal && <ProjectModal mode={modal} project={selected} onClose={() => setModal(null)} busy={mutating} />}
-    </div>
-  );
+interface ProjectsProps {
+  setPage?: (page: string) => void;
 }
 
+interface FormErrors {
+  name?: string;
+  categoryId?: string;
+  client?: string;
+  services?: string;
+  coverImage?: string;
+  photos?: string;
+  videos?: string;
+}
 
-/* ---------------------------------------------------------------- */
-/*  small helpers                                                    */
-/* ---------------------------------------------------------------- */
+/* -------------------------------------------------------------------------- */
+/* Helpers                                                                    */
+/* -------------------------------------------------------------------------- */
 
 const uid = () => Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
 
@@ -176,9 +68,279 @@ const readAsDataURL = (file: File) =>
     reader.readAsDataURL(file);
   });
 
-/* ---------------------------------------------------------------- */
-/*  Lightbox — full-screen viewer with left / right navigation       */
-/* ---------------------------------------------------------------- */
+const LIMIT = 10;
+
+/* -------------------------------------------------------------------------- */
+/* Projects                                                                   */
+/* -------------------------------------------------------------------------- */
+
+export function Projects({ setPage }: ProjectsProps) {
+  const { projects, total, loading, submitting, deletingId, getProjects, deleteProjectApi } = useProjectStore();
+  const { categories, loadCategories } = useCategoryStore();
+
+  const [query, setQuery] = useState('');
+  const [status, setStatus] = useState('All status');
+  const [category, setCategory] = useState('All categories');
+  const [page, setPage_] = useState(1);
+
+  const [modal, setModal] = useState<ModalMode | null>(null);
+  const [showModal, setShowModal] = useState<any>({
+    modal: false,
+    values: ''
+  });
+  const [selected, setSelected] = useState<ProjectUi | null>(null);
+
+  useEffect(() => {
+    if (categories.length === 0) loadCategories();
+  }, [categories.length, loadCategories]);
+
+  // reset to page 1 whenever a filter changes
+  useEffect(() => {
+    setPage_(1);
+  }, [query, status, category]);
+
+  // debounced server call — dynamic query params: offset, limit, search, status, categoryId
+  useEffect(() => {
+    const categoryId = categories.find((c) => c.name === category)?.id;
+
+    const timer = setTimeout(() => {
+      getProjects({
+        offset: (page - 1) * LIMIT,
+        limit: LIMIT,
+        search: query || undefined,
+        status: status !== 'All status' ? status : undefined,
+        categoryId,
+      });
+    }, 350);
+
+    return () => clearTimeout(timer);
+  }, [query, status, category, page, categories, getProjects]);
+
+  const totalPages = Math.max(1, Math.ceil(total / LIMIT));
+
+  const open = (kind: ModalMode, project?: ProjectUi) => {
+    setSelected(project ?? null);
+    setModal(kind);
+  };
+
+  const closeModal = () => {
+    setModal(null);
+    setSelected(null);
+  };
+
+  const handleDelete = async (id: string) => {
+    await deleteProjectApi(id);
+    setShowModal(null);
+    getProjects();
+  };
+
+  const filtersActive = Boolean(query) || status !== 'All status' || category !== 'All categories';
+
+  return (
+    <div className="flex flex-col gap-6">
+      {/* Header */}
+      {loading && <Loading message='Please wait, loading your data...' />}
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-wide text-[#b98a2c]">WORKSPACE / PROJECTS</p>
+          <h2 className="mt-1 text-2xl font-semibold text-stone-900">Projects</h2>
+          <p className="mt-1 text-sm text-stone-500">Manage, publish and track every foundation initiative.</p>
+        </div>
+
+        <button
+          type="button"
+          onClick={() => open('add')}
+          className="inline-flex w-fit items-center gap-2 rounded-lg bg-[#d9aa3f] px-4 py-2.5 text-sm font-semibold text-stone-900 hover:bg-[#c99a34]"
+        >
+          <Plus size={17} />
+          Add project
+        </button>
+      </div>
+
+      {/* Toolbar */}
+      <div className="flex flex-col flex-wrap gap-3 sm:flex-row sm:items-center">
+        <SearchBar value={query} onChange={setQuery} placeholder="Search projects..." />
+
+        <div className="flex items-center gap-2 rounded-lg border border-stone-300 bg-white px-3 py-2">
+          <ListFilter size={16} className="text-stone-400" />
+          <select
+            value={status}
+            onChange={(e) => setStatus(e.target.value)}
+            className="w-full bg-transparent text-sm outline-none"
+          >
+            <option>All status</option>
+            <option>Published</option>
+            <option>Active</option>
+            <option>Draft</option>
+            <option>Inactive</option>
+          </select>
+        </div>
+
+        <div className="rounded-lg border border-stone-300 bg-white px-3 py-2">
+          <select
+            value={category}
+            onChange={(e) => setCategory(e.target.value)}
+            className="w-full bg-transparent text-sm outline-none"
+          >
+            <option>All categories</option>
+            {categories.map((c) => (
+              <option key={c.id} value={c.name}>
+                {c.name}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {filtersActive && (
+          <button
+            type="button"
+            onClick={() => {
+              setQuery('');
+              setStatus('All status');
+              setCategory('All categories');
+            }}
+            className="text-sm font-medium text-[#b98a2c] hover:underline"
+          >
+            Clear filters
+          </button>
+        )}
+      </div>
+
+      {/* Table */}
+      <div className="rounded-2xl border border-stone-200 bg-white">
+
+        {projects?.length ? <div className="overflow-x-auto min-h-[230px]">
+          <table className="w-full min-w-[720px] text-left text-sm">
+            <thead>
+              <tr className="border-b border-stone-100 text-xs uppercase tracking-wide text-stone-400">
+                <th className="px-5 py-3 font-medium">Project name</th>
+                <th className="px-5 py-3 font-medium">Category</th>
+                <th className="px-5 py-3 font-medium">Status</th>
+                <th className="px-5 py-3 font-medium">Created</th>
+                <th className="px-5 py-3 font-medium">Last updated</th>
+                <th className="px-5 py-3" />
+              </tr>
+            </thead>
+
+            <tbody>
+              {projects.map((project) => (
+                <tr key={project.id} className="border-b border-stone-50 last:border-0 hover:bg-stone-50/60">
+                  <td className="px-5 py-3">
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#d9aa3f]/15 text-sm font-semibold text-[#b98a2c]">
+                        {project.image}
+                      </div>
+                      <div className="min-w-0">
+                        <strong className="block truncate text-stone-900">{project.name}</strong>
+                        <small className="text-xs text-stone-500">{project.client || 'No client'}</small>
+                      </div>
+                    </div>
+                  </td>
+
+                  <td className="px-5 py-3 text-stone-600">{project.category || '-'}</td>
+                  <td className="px-5 py-3">
+                    <StatusBadge status={project.status} />
+                  </td>
+                  <td className="px-5 py-3 text-stone-500">{project.date || '-'}</td>
+                  <td className="px-5 py-3 text-stone-500">{project.updated || '-'}</td>
+
+                  <td className="px-5 py-3">
+                    <div className="flex items-center justify-end gap-1">
+                      <button
+                        type="button"
+                        title="View"
+                        onClick={() => open('view', project)}
+                        className="rounded-lg p-1.5 text-stone-400 hover:bg-stone-100 hover:text-stone-700"
+                      >
+                        <Eye size={16} />
+                      </button>
+
+                      <button
+                        type="button"
+                        title="Edit"
+                        onClick={() => open('edit', project)}
+                        className="rounded-lg p-1.5 text-stone-400 hover:bg-stone-100 hover:text-stone-700"
+                      >
+                        <Pencil size={16} />
+                      </button>
+
+                      <button
+                        type="button"
+                        title="Delete"
+                        disabled={deletingId === project.id}
+                        onClick={() => setShowModal({
+                          modal: true,
+                          values: project
+                        })}
+                        className="rounded-lg p-1.5 text-stone-400 hover:bg-red-50 hover:text-red-600 disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div> : null
+        }
+
+        {!loading && projects.length === 0 && (
+          <div className="flex flex-col items-center gap-2 py-16 text-stone-400">
+            <Archive size={30} />
+            <strong className="text-stone-600">No projects found</strong>
+            <span className="text-sm">Try adjusting your search or filters.</span>
+          </div>
+        )}
+
+        <div className="flex items-center justify-between px-5 py-3 text-sm text-stone-500">
+          <span>
+            Showing <strong className="text-stone-900">{projects.length}</strong> of{' '}
+            <strong className="text-stone-900">{total}</strong> projects
+          </span>
+
+          <div className="flex items-center gap-1">
+            <button
+              type="button"
+              disabled={page === 1}
+              onClick={() => setPage_((p) => Math.max(1, p - 1))}
+              className="rounded-lg border border-stone-200 p-1.5 disabled:opacity-40"
+            >
+              <ChevronLeft size={16} />
+            </button>
+            <button type="button" className="rounded-lg bg-[#d9aa3f] px-2.5 py-1 text-xs font-semibold text-stone-900">
+              {page}
+            </button>
+            <button
+              type="button"
+              disabled={page === totalPages}
+              onClick={() => setPage_((p) => Math.min(totalPages, p + 1))}
+              className="rounded-lg border border-stone-200 p-1.5 disabled:opacity-40"
+            >
+              <ChevronRight size={16} />
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {modal && (
+        <ProjectModal mode={modal} project={selected} categories={categories} onClose={closeModal} busy={submitting} />
+      )}
+
+      {showModal?.modal && <DeleteConfirmationModal
+        title={`Are you sure you want to delete this`}
+        subtitle={`${showModal?.values?.name}?`}
+        loading={deletingId === showModal?.values?.id}
+        cancel={() => setShowModal(false)}
+        confirm={() => handleDelete(showModal?.values?.id)}
+      />}
+    </div>
+  );
+}
+
+/* -------------------------------------------------------------------------- */
+/* Lightbox                                                                   */
+/* -------------------------------------------------------------------------- */
 
 function Lightbox({
   images,
@@ -202,6 +364,7 @@ function Lightbox({
       if (e.key === 'ArrowLeft' && hasMultiple) goPrev();
       if (e.key === 'ArrowRight' && hasMultiple) goNext();
     };
+
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -210,10 +373,7 @@ function Lightbox({
   if (!images[index]) return null;
 
   return (
-    <div
-      className="fixed inset-0 z-[70] flex items-center justify-center bg-black/90 p-4 sm:p-8"
-      onClick={onClose}
-    >
+    <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/90 p-4 sm:p-8" onClick={onClose}>
       <button
         type="button"
         onClick={onClose}
@@ -267,120 +427,151 @@ function Lightbox({
   );
 }
 
-/* ---------------------------------------------------------------- */
-/*  ProjectModal                                                     */
-/* ---------------------------------------------------------------- */
+/* -------------------------------------------------------------------------- */
+/* Project Modal                                                              */
+/* -------------------------------------------------------------------------- */
 
-function ProjectModal({ mode, project, onClose, busy }: { mode: 'add' | 'edit' | 'view'; project: Project | null; onClose: () => void; busy: boolean }) {
-  const { categories, addProject, updateProject } = useAdminStore();
+function ProjectModal({
+  mode,
+  project,
+  categories,
+  onClose,
+  busy,
+}: {
+  mode: ModalMode;
+  project: ProjectUi | null;
+  categories: Array<{ id: string; name: string }>;
+  onClose: () => void;
+  busy: boolean;
+}) {
+  const { addProjectApi, updateProjectApi, fetchProjectById, loadingDetail } = useProjectStore();
   const view = mode === 'view';
+
+  // detail holds the freshly-fetched record; falls back to the row passed in
+  // until the getById call resolves
+  const [detail, setDetail] = useState<ProjectUi | null>(project);
 
   const [name, setName] = useState(project?.name ?? '');
   const [description, setDescription] = useState(project?.description ?? '');
-  const [cat, setCat] = useState(project?.category ?? categories[0]?.name ?? 'Education');
+  const [categoryId, setCategoryId] = useState(project?.categoryId ?? '');
   const [projectStatus, setProjectStatus] = useState<ProjectStatus>(project?.status ?? 'Draft');
   const [client, setClient] = useState(project?.client ?? '');
-  const [services, setServices] = useState(project?.services.join(', ') ?? '');
+  const [services, setServices] = useState(project?.services?.join(', ') ?? '');
+  const [projectUrl, setProjectUrl] = useState(project?.url ?? '');
 
-  // NEW: validation — Project name is the only required field.
-  // Every other field (description, client, URL, services, cover image,
-  // photos, videos, video link) is optional and is never validated.
-  const [errors, setErrors] = useState<{ name?: string }>({});
+  const [errors, setErrors] = useState<FormErrors>({});
 
-  const validateName = (value: string) => {
-    if (!value.trim()) return 'Project name is required.';
-    return undefined;
-  };
-
-  const handleNameChange = (value: string) => {
-    setName(value);
-    if (errors.name) {
-      setErrors((prev) => {
-        const { name: _n, ...rest } = prev;
-        return rest;
-      });
-    }
-  };
-
-  const handleNameBlur = () => {
-    const error = validateName(name);
-    setErrors((prev) => (error ? { ...prev, name: error } : (() => { const { name: _n, ...rest } = prev; return rest; })()));
-  };
-
-  // NEW: media state
   const [coverImage, setCoverImage] = useState<string | null>(project?.coverImage ?? null);
-  const [photos, setPhotos] = useState<ProjectPhoto[]>(project?.photos ?? []);
-  const [videos, setVideos] = useState<ProjectVideo[]>(project?.videos ?? []);
+  const [photos, setPhotos] = useState<{ id: string; url: string; name?: string }[]>(project?.photos ?? []);
+  const [videos, setVideos] = useState<{ id: string; type: 'file' | 'link'; url: string; name?: string }[]>(
+    project?.videos ?? []
+  );
   const [videoLink, setVideoLink] = useState('');
 
-  // NEW: drag-over highlight state, per drop zone
   const [dragOver, setDragOver] = useState<'cover' | 'photos' | 'videos' | null>(null);
-
-  // NEW: lightbox state (which gallery is open + which index)
   const [lightbox, setLightbox] = useState<{ images: { url: string; name?: string }[]; index: number } | null>(null);
 
   const coverInputRef = useRef<HTMLInputElement>(null);
   const photosInputRef = useRef<HTMLInputElement>(null);
   const videosInputRef = useRef<HTMLInputElement>(null);
 
-  /* ---------- cover image (single) ---------- */
+  // on open (edit/view), fetch the full record by id and populate the form
+  useEffect(() => {
+    if (!project?.id) return;
+
+    let cancelled = false;
+
+    fetchProjectById(project.id).then((data) => {
+      if (cancelled || !data) return;
+
+      setDetail(data);
+      setName(data.name);
+      setDescription(data.description ?? '');
+      setCategoryId(data.categoryId ?? '');
+      setProjectStatus(data.status);
+      setClient(data.client);
+      setServices(data.services?.join(', ') ?? '');
+      setProjectUrl(data.url ?? '');
+      setCoverImage(data.coverImage);
+      setPhotos(data.photos);
+      setVideos(data.videos);
+    });
+
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [project?.id]);
+
+  const clearError = (key: keyof FormErrors) => {
+    setErrors((prev) => {
+      if (!prev[key]) return prev;
+      const next = { ...prev };
+      delete next[key];
+      return next;
+    });
+  };
 
   const handleCoverFiles = async (files: FileList | null) => {
     const file = files?.[0];
-    if (!file) return;
-    const url = await readAsDataURL(file);
-    setCoverImage(url);
-  };
+    if (!file || !file.type.startsWith('image/')) return;
 
-  /* ---------- project photos (multiple) ---------- */
+    try {
+      setCoverImage(await readAsDataURL(file));
+      clearError('coverImage');
+    } catch {
+      // File read error is handled by the API/store toast layer where needed.
+    }
+  };
 
   const handlePhotoFiles = async (files: FileList | null) => {
     if (!files || files.length === 0) return;
-    const next: ProjectPhoto[] = await Promise.all(
-      Array.from(files).map(async (file) => ({
-        id: uid(),
-        url: await readAsDataURL(file),
-        name: file.name,
-      }))
+
+    const imageFiles = Array.from(files).filter((file) => file.type.startsWith('image/'));
+    if (imageFiles.length === 0) return;
+
+    const next = await Promise.all(
+      imageFiles.map(async (file) => ({ id: uid(), url: await readAsDataURL(file), name: file.name }))
     );
+
     setPhotos((prev) => [...prev, ...next]);
+    clearError('photos');
   };
 
-  const removePhoto = (id: string) => setPhotos((prev) => prev.filter((p) => p.id !== id));
-
-  /* ---------- project videos (multiple files + links) ---------- */
+  const removePhoto = (id: string) => setPhotos((prev) => prev.filter((photo) => photo.id !== id));
 
   const handleVideoFiles = (files: FileList | null) => {
     if (!files || files.length === 0) return;
-    const next: ProjectVideo[] = Array.from(files).map((file) => ({
+
+    const videoFiles = Array.from(files).filter((file) => file.type.startsWith('video/'));
+    const next = videoFiles.map((file) => ({
       id: uid(),
-      type: 'file',
+      type: 'file' as const,
       url: URL.createObjectURL(file),
       name: file.name,
     }));
+
     setVideos((prev) => [...prev, ...next]);
+    clearError('videos');
   };
 
   const addLinkVideo = () => {
     const link = videoLink.trim();
     if (!link) return;
+
     setVideos((prev) => [...prev, { id: uid(), type: 'link', url: link, name: link }]);
     setVideoLink('');
+    clearError('videos');
   };
 
-  const removeVideo = (id: string) => setVideos((prev) => prev.filter((v) => v.id !== id));
+  const removeVideo = (id: string) => setVideos((prev) => prev.filter((video) => video.id !== id));
 
-  /* ---------- drag & drop plumbing ---------- */
-
-  const dropHandlers = (
-    zone: 'cover' | 'photos' | 'videos',
-    onFiles: (files: FileList | null) => void
-  ) => ({
+  const dropHandlers = (zone: 'cover' | 'photos' | 'videos', onFiles: (files: FileList | null) => void) => ({
     onDragOver: (e: DragEvent) => {
       e.preventDefault();
       setDragOver(zone);
     },
-    onDragLeave: () => setDragOver((z) => (z === zone ? null : z)),
+    onDragLeave: () => setDragOver((current) => (current === zone ? null : current)),
     onDrop: (e: DragEvent) => {
       e.preventDefault();
       setDragOver(null);
@@ -392,91 +583,143 @@ function ProjectModal({ mode, project, onClose, busy }: { mode: 'add' | 'edit' |
     `flex flex-col items-center gap-1 rounded-xl border-2 border-dashed p-8 text-center transition ${dragOver === zone ? 'border-[#d9aa3f] bg-[#d9aa3f]/10 text-[#b98a2c]' : 'border-stone-200 text-stone-400'
     }`;
 
-  /* ---------- submit ---------- */
+  // all fields mandatory except description and projectUrl; video needs
+  // either a file or a link (at least one)
+  const validate = (): FormErrors => {
+    const next: FormErrors = {};
+
+    if (!name.trim()) next.name = 'Project name is required.';
+    if (!categoryId) next.categoryId = 'Category is required.';
+    if (!client.trim()) next.client = 'Client / company is required.';
+    if (!services.split(',').map((s) => s.trim()).filter(Boolean).length) next.services = 'At least one service is required.';
+    if (!coverImage) next.coverImage = 'Cover image is required.';
+    if (photos.length === 0) next.photos = 'At least one project photo is required.';
+    if (videos.length === 0) next.videos = 'Add a video file or a video link.';
+
+    return next;
+  };
 
   const submit = async (event: FormEvent) => {
     event.preventDefault();
-    const nameError = validateName(name);
-    if (nameError) {
-      setErrors({ name: nameError });
+
+    const nextErrors = validate();
+    if (Object.keys(nextErrors).length > 0) {
+      setErrors(nextErrors);
       return;
     }
-    const next = {
-      name, description, category: cat, status: projectStatus, client,
-      date: project?.date ?? '15 Aug 2026',
-      services: services.split(',').map((s) => s.trim()).filter(Boolean),
-      image: project?.image ?? name.split(' ').map((w) => w[0]).join('').slice(0, 2).toUpperCase(),
+
+    const value: ProjectFormValue = {
+      name: name.trim(),
+      description: description.trim() || undefined,
+      categoryId: categoryId || null,
+      status: projectStatus,
+      client: client.trim(),
+      services: services.split(',').map((service) => service.trim()).filter(Boolean),
+      projectUrl: projectUrl.trim() || undefined,
+      projectDate: project?.projectDate ?? new Date().toISOString(),
       coverImage,
-      photos,
-      videos,
+      photos: photos.map((photo) => ({ url: photo.url })),
+      videos: videos.map((video) => ({ type: video.type, url: video.url })),
     };
-    if (project) await updateProject({ ...project, ...next });
-    else await addProject(next);
-    onClose();
+
+    const result = project ? await updateProjectApi(project.id, value) : await addProjectApi(value);
+    if (result) onClose();
   };
 
-  /* ---------- view mode ---------- */
+  const galleryImages = photos.map((photo) => ({ url: photo.url, name: photo.name }));
+  const fetchingDetail = Boolean(project?.id) && loadingDetail && !view;
+
+  /* -------------------------------------------------------------------------- */
+  /* View mode                                                                  */
+  /* -------------------------------------------------------------------------- */
 
   if (view) {
-    const galleryImages = photos.map((p) => ({ url: p.url, name: p.name }));
+    if (loadingDetail && !detail) {
+      return <Loading message='Please wait, loading your data...' />
+        ;
+    }
 
     return (
       <Modal title="Project details" subtitle="A clear view of the project record." onClose={onClose} wide>
         <div className="flex max-h-[75vh] flex-col">
-          {/* Scrollable body — only this area scrolls; Close stays fixed at the bottom */}
           <div className="flex-1 overflow-y-auto pr-1">
             <div className="flex flex-col gap-6">
               <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
                 <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-[#d9aa3f]/15 text-lg font-semibold text-[#b98a2c]">
-                  {project?.image}
+                  {detail?.image}
                 </div>
+
                 <div>
-                  <h3 className="text-lg font-semibold text-stone-900">{project?.name}</h3>
-                  <p className="mb-1 text-sm text-stone-600">{project?.description}</p>
-                  <StatusBadge status={project?.status ?? 'Draft'} />
+                  <h3 className="text-lg font-semibold text-stone-900">{detail?.name}</h3>
+                  {detail?.description && <p className="mb-1 text-sm text-stone-600">{detail.description}</p>}
+                  <StatusBadge status={detail?.status ?? 'Draft'} />
                 </div>
               </div>
 
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <Detail label="Category" value={project?.category} />
-                <Detail label="Client / company" value={project?.client} />
-                <Detail label="Project date" value={project?.date} />
-                <Detail label="Last updated" value={project?.updated} />
+                <Detail label="Category" value={detail?.category || '-'} />
+                <Detail label="Client / company" value={detail?.client || '-'} />
+                <Detail label="Project date" value={detail?.date || '-'} />
+                <Detail label="Last updated" value={detail?.updated || '-'} />
               </div>
 
-              <div>
-                <strong className="text-sm text-stone-700">Services delivered</strong>
-                <div className="mt-2 flex flex-wrap gap-2">
-                  {project?.services.map((s) => (
-                    <span key={s} className="rounded-full bg-stone-100 px-3 py-1 text-xs text-stone-600">{s}</span>
-                  ))}
+              {detail?.services && detail.services.length > 0 && (
+                <div>
+                  <strong className="text-sm text-stone-700">Services delivered</strong>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {detail.services.map((service) => (
+                      <span key={service} className="rounded-full bg-stone-100 px-3 py-1 text-xs text-stone-600">
+                        {service}
+                      </span>
+                    ))}
+                  </div>
                 </div>
-              </div>
+              )}
+
+              {detail?.url && (
+                <div>
+                  <strong className="text-sm text-stone-700">Project URL</strong>
+                  <a
+                    href={detail.url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="mt-2 flex items-center gap-2 text-sm text-[#b98a2c] hover:underline"
+                  >
+                    <Link2 size={15} />
+                    {detail.url}
+                  </a>
+                </div>
+              )}
 
               {coverImage && (
-                <div className='flex flex-col w-max'>
+                <div className="flex w-max flex-col">
                   <strong className="text-sm text-stone-700">Cover image</strong>
                   <button
                     type="button"
                     onClick={() => setLightbox({ images: [{ url: coverImage }], index: 0 })}
-                    className="overflow-hidden rounded-2xl"
+                    className="mt-2 overflow-hidden rounded-2xl"
                   >
                     <img src={coverImage} alt="Cover" className="h-40 w-full object-cover sm:h-56" />
                   </button>
-                </div>)}
+                </div>
+              )}
 
               {photos.length > 0 && (
                 <div>
                   <strong className="text-sm text-stone-700">Project photos</strong>
                   <div className="mt-2 grid grid-cols-3 gap-2 sm:grid-cols-4 md:grid-cols-5">
-                    {photos.map((p, i) => (
+                    {photos.map((photo, index) => (
                       <button
                         type="button"
-                        key={p.id}
-                        onClick={() => setLightbox({ images: galleryImages, index: i })}
+                        key={photo.id}
+                        onClick={() => setLightbox({ images: galleryImages, index })}
                         className="aspect-square overflow-hidden rounded-lg"
                       >
-                        <img src={p.url} alt={p.name} className="h-full w-full object-cover transition hover:scale-105" />
+                        <img
+                          src={photo.url}
+                          alt={photo.name ?? 'Project photo'}
+                          className="h-full w-full object-cover transition hover:scale-105"
+                        />
                       </button>
                     ))}
                   </div>
@@ -487,23 +730,29 @@ function ProjectModal({ mode, project, onClose, busy }: { mode: 'add' | 'edit' |
                 <div>
                   <strong className="text-sm text-stone-700">Project videos</strong>
                   <div className="mt-2 flex flex-col gap-2">
-                    {videos.map((v) =>
-                      v.type === 'link' ? (
-                        <a key={v.id} href={v.url} target="_blank" rel="noreferrer" className="flex items-center gap-2 rounded-lg bg-stone-100 px-3 py-2 text-xs text-stone-600 hover:bg-stone-200">
-                          <Link2 size={14} /> {v.url}
+                    {videos.map((video) =>
+                      video.type === 'link' ? (
+                        <a
+                          key={video.id}
+                          href={video.url}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="flex items-center gap-2 rounded-lg bg-stone-100 px-3 py-2 text-xs text-stone-600 hover:bg-stone-200"
+                        >
+                          <Link2 size={14} />
+                          <span className="truncate">{video.url}</span>
                         </a>
                       ) : (
-                        <video key={v.id} src={v.url} controls className="w-full rounded-lg sm:max-w-sm" />
+                        <video key={video.id} src={video.url} controls className="w-full rounded-lg sm:max-w-sm" />
                       )
                     )}
                   </div>
                 </div>
               )}
-
             </div>
           </div>
-          {/* Fixed actions bar — stays visible while the body above scrolls */}
-          <div className="shrink-0 border-t border-stone-200 pt-0 mt-2 mb-3">
+
+          <div className="mt-2 mb-3 shrink-0 border-t border-stone-200 pt-0">
             <ModalActions>
               <BtnSecondary onClick={onClose}>Close</BtnSecondary>
             </ModalActions>
@@ -514,7 +763,7 @@ function ProjectModal({ mode, project, onClose, busy }: { mode: 'add' | 'edit' |
           <Lightbox
             images={lightbox.images}
             index={lightbox.index}
-            onIndexChange={(i) => setLightbox((prev) => (prev ? { ...prev, index: i } : prev))}
+            onIndexChange={(index) => setLightbox((previous) => (previous ? { ...previous, index } : previous))}
             onClose={() => setLightbox(null)}
           />
         )}
@@ -522,58 +771,118 @@ function ProjectModal({ mode, project, onClose, busy }: { mode: 'add' | 'edit' |
     );
   }
 
-  /* ---------- add / edit mode ---------- */
-
-  const galleryImages = photos.map((p) => ({ url: p.url, name: p.name }));
+  /* -------------------------------------------------------------------------- */
+  /* Add / edit mode                                                            */
+  /* -------------------------------------------------------------------------- */
 
   return (
-    <Modal title={mode === 'edit' ? 'Edit project' : 'Add project'} subtitle="Create a project record for your foundation portfolio." onClose={onClose} wide>
+    <Modal
+      title={mode === 'edit' ? 'Edit project' : 'Add project'}
+      subtitle="Create a project record for your foundation portfolio."
+      onClose={onClose}
+      wide
+    >
       <form onSubmit={submit} className="flex max-h-[75vh] flex-col">
-        {/* Scrollable body — only this area scrolls; the actions bar below stays fixed in place */}
-        <div className="flex-1 overflow-y-auto pr-1">
+        <div className="relative flex-1 overflow-y-auto pr-1">
+          {fetchingDetail && (
+            <Loading message='Please wait, loading your data...' />
+
+          )}
+
           <div className="flex flex-col gap-6">
             <div className="flex flex-col gap-4">
               <div className="text-xs font-semibold uppercase tracking-wide text-stone-400">BASIC INFORMATION</div>
+
               <Field label="Project name">
                 <input
                   className={`${inputClass} ${errors.name ? 'border-red-400 focus:border-red-400 focus:ring-red-100' : ''}`}
                   value={name}
-                  onChange={(e) => handleNameChange(e.target.value)}
-                  onBlur={handleNameBlur}
+                  onChange={(e) => {
+                    setName(e.target.value);
+                    clearError('name');
+                  }}
                   placeholder="e.g. Rural healthcare outreach camp"
                   aria-invalid={Boolean(errors.name)}
-                  aria-describedby={errors.name ? 'project-name-error' : undefined}
                 />
-                {errors.name && (
-                  <p id="project-name-error" className="mt-1 text-xs text-red-500">{errors.name}</p>
-                )}
+                {errors.name && <p className="mt-1 text-xs text-red-500">{errors.name}</p>}
               </Field>
-              {/* Description, Client, Project URL, Services, Cover image, Photos, Videos and Video link
-              are all optional fields per the form — intentionally left without any validation. */}
-              <Field label="Short description" hint="Shown on the project card">
-                <textarea className={inputClass} value={description} onChange={(e) => setDescription(e.target.value)} placeholder="One or two sentences about what the project did and what changed." rows={3} />
+
+              <Field label="Short description" hint="Optional">
+                <textarea
+                  className={inputClass}
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  placeholder="One or two sentences about what the project did and what changed."
+                  rows={3}
+                />
               </Field>
+
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <Field label="Category / industry">
-                  <select className={inputClass} value={cat} onChange={(e) => setCat(e.target.value)}>
-                    {categories.map((c) => <option key={c.id}>{c.name}</option>)}
+                  <select
+                    className={`${inputClass} ${errors.categoryId ? 'border-red-400 focus:border-red-400' : ''}`}
+                    value={categoryId}
+                    onChange={(e) => {
+                      setCategoryId(e.target.value);
+                      clearError('categoryId');
+                    }}
+                  >
+                    <option value="">Select category</option>
+                    {categories.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.name}
+                      </option>
+                    ))}
                   </select>
+                  {errors.categoryId && <p className="mt-1 text-xs text-red-500">{errors.categoryId}</p>}
                 </Field>
+
                 <Field label="Project date">
-                  <input className={inputClass} value={project?.date ?? '15 Aug 2026'} readOnly />
+                  <input
+                    className={inputClass}
+                    value={detail?.date ?? new Date().toLocaleDateString('en-GB')}
+                    readOnly
+                  />
                 </Field>
               </div>
+
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <Field label="Client / company">
-                  <input className={inputClass} value={client} onChange={(e) => setClient(e.target.value)} placeholder="Organisation name" />
+                  <input
+                    className={`${inputClass} ${errors.client ? 'border-red-400 focus:border-red-400' : ''}`}
+                    value={client}
+                    onChange={(e) => {
+                      setClient(e.target.value);
+                      clearError('client');
+                    }}
+                    placeholder="Organisation name"
+                  />
+                  {errors.client && <p className="mt-1 text-xs text-red-500">{errors.client}</p>}
                 </Field>
+
                 <Field label="Project URL" hint="Optional">
-                  <input className={inputClass} placeholder="https://" />
+                  <input
+                    className={inputClass}
+                    value={projectUrl}
+                    onChange={(e) => setProjectUrl(e.target.value)}
+                    placeholder="https://"
+                  />
                 </Field>
               </div>
+
               <Field label="Services delivered">
-                <input className={inputClass} value={services} onChange={(e) => setServices(e.target.value)} placeholder="Type a service, separated by commas" />
+                <input
+                  className={`${inputClass} ${errors.services ? 'border-red-400 focus:border-red-400' : ''}`}
+                  value={services}
+                  onChange={(e) => {
+                    setServices(e.target.value);
+                    clearError('services');
+                  }}
+                  placeholder="Type a service, separated by commas"
+                />
+                {errors.services && <p className="mt-1 text-xs text-red-500">{errors.services}</p>}
               </Field>
+
               <Field label="Status">
                 <div className="flex flex-wrap gap-2">
                   {(['Draft', 'Published', 'Active', 'Inactive'] as ProjectStatus[]).map((value) => (
@@ -581,7 +890,9 @@ function ProjectModal({ mode, project, onClose, busy }: { mode: 'add' | 'edit' |
                       type="button"
                       key={value}
                       onClick={() => setProjectStatus(value)}
-                      className={`rounded-full border px-3 py-1.5 text-xs font-medium transition ${projectStatus === value ? 'border-[#d9aa3f] bg-[#d9aa3f]/15 text-[#b98a2c]' : 'border-stone-200 text-stone-500 hover:bg-stone-50'
+                      className={`rounded-full border px-3 py-1.5 text-xs font-medium transition ${projectStatus === value
+                        ? 'border-[#d9aa3f] bg-[#d9aa3f]/15 text-[#b98a2c]'
+                        : 'border-stone-200 text-stone-500 hover:bg-stone-50'
                         }`}
                     >
                       {value}
@@ -591,7 +902,7 @@ function ProjectModal({ mode, project, onClose, busy }: { mode: 'add' | 'edit' |
               </Field>
             </div>
 
-            {/* ---------------- COVER IMAGE (single upload) ---------------- */}
+            {/* Cover image */}
             <div>
               <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-stone-400">COVER IMAGE</div>
 
@@ -625,12 +936,15 @@ function ProjectModal({ mode, project, onClose, busy }: { mode: 'add' | 'edit' |
                   {...dropHandlers('cover', handleCoverFiles)}
                   onClick={() => coverInputRef.current?.click()}
                   role="button"
+                  tabIndex={0}
                 >
                   <Upload size={20} />
                   <strong className="text-sm text-stone-600">Drop a cover image here, or browse</strong>
                   <small className="text-xs">PNG, JPG or SVG · 1600×900 works best</small>
                 </div>
               )}
+
+              {errors.coverImage && <p className="mt-1 text-xs text-red-500">{errors.coverImage}</p>}
 
               <input
                 ref={coverInputRef}
@@ -641,7 +955,7 @@ function ProjectModal({ mode, project, onClose, busy }: { mode: 'add' | 'edit' |
               />
             </div>
 
-            {/* ---------------- PROJECT PHOTOS (multiple upload) ---------------- */}
+            {/* Project photos */}
             <div>
               <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-stone-400">PROJECT PHOTOS</div>
 
@@ -650,11 +964,14 @@ function ProjectModal({ mode, project, onClose, busy }: { mode: 'add' | 'edit' |
                 {...dropHandlers('photos', handlePhotoFiles)}
                 onClick={() => photosInputRef.current?.click()}
                 role="button"
+                tabIndex={0}
               >
                 <ImageIcon size={20} />
                 <strong className="text-sm text-stone-600">Drop photos here, or browse</strong>
                 <small className="text-xs">Up to 20 images · PNG or JPG, 15MB each</small>
               </div>
+
+              {errors.photos && <p className="mt-1 text-xs text-red-500">{errors.photos}</p>}
 
               <input
                 ref={photosInputRef}
@@ -667,19 +984,19 @@ function ProjectModal({ mode, project, onClose, busy }: { mode: 'add' | 'edit' |
 
               {photos.length > 0 && (
                 <div className="mt-3 grid grid-cols-3 gap-2 sm:grid-cols-4 md:grid-cols-5">
-                  {photos.map((p, i) => (
-                    <div key={p.id} className="group relative aspect-square overflow-hidden rounded-lg">
+                  {photos.map((photo, index) => (
+                    <div key={photo.id} className="group relative aspect-square overflow-hidden rounded-lg">
                       <img
-                        src={p.url}
-                        alt={p.name}
-                        onClick={() => setLightbox({ images: galleryImages, index: i })}
+                        src={photo.url}
+                        alt={photo.name ?? 'Project photo'}
+                        onClick={() => setLightbox({ images: galleryImages, index })}
                         className="h-full w-full cursor-pointer object-cover transition group-hover:scale-105"
                       />
                       <button
                         type="button"
-                        onClick={() => removePhoto(p.id)}
+                        onClick={() => removePhoto(photo.id)}
                         className="absolute right-1 top-1 rounded-full bg-black/60 p-1 text-white opacity-0 transition group-hover:opacity-100"
-                        aria-label={`Remove ${p.name}`}
+                        aria-label={`Remove ${photo.name ?? 'photo'}`}
                       >
                         <X size={12} />
                       </button>
@@ -689,15 +1006,18 @@ function ProjectModal({ mode, project, onClose, busy }: { mode: 'add' | 'edit' |
               )}
             </div>
 
-            {/* ---------------- PROJECT VIDEOS (multiple upload + link) ---------------- */}
+            {/* Project videos */}
             <div>
-              <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-stone-400">PROJECT VIDEOS</div>
+              <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-stone-400">
+                PROJECT VIDEOS <span className="normal-case text-stone-400">(video file or link — one required)</span>
+              </div>
 
               <div
                 className={dropZoneClass('videos')}
                 {...dropHandlers('videos', handleVideoFiles)}
                 onClick={() => videosInputRef.current?.click()}
                 role="button"
+                tabIndex={0}
               >
                 <Video size={20} />
                 <strong className="text-sm text-stone-600">Drop videos here, or browse</strong>
@@ -714,29 +1034,43 @@ function ProjectModal({ mode, project, onClose, busy }: { mode: 'add' | 'edit' |
               />
 
               <div className="mt-3 mb-2">
-                <Field label="Or add a video link" hint="Optional — YouTube, Vimeo or MP4">
+                <Field label="Or add a video link">
                   <div className="flex gap-2">
                     <input
                       className={inputClass}
                       value={videoLink}
                       onChange={(e) => setVideoLink(e.target.value)}
-                      onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addLinkVideo())}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          addLinkVideo();
+                        }
+                      }}
                       placeholder="https://youtube.com/watch?v="
                     />
-                    <BtnSecondary type="button" onClick={addLinkVideo}>Add</BtnSecondary>
+                    <BtnSecondary type="button" onClick={addLinkVideo}>
+                      Add
+                    </BtnSecondary>
                   </div>
                 </Field>
               </div>
 
+              {errors.videos && <p className="mb-2 text-xs text-red-500">{errors.videos}</p>}
+
               {videos.length > 0 && (
                 <div className="mt-3 flex flex-col gap-2">
-                  {videos.map((v) => (
-                    <div key={v.id} className="flex items-center justify-between gap-3 rounded-lg bg-stone-100 px-3 py-2">
+                  {videos.map((video) => (
+                    <div key={video.id} className="flex items-center justify-between gap-3 rounded-lg bg-stone-100 px-3 py-2">
                       <div className="flex min-w-0 items-center gap-2 text-xs text-stone-600">
-                        {v.type === 'link' ? <Link2 size={14} className="shrink-0" /> : <Video size={14} className="shrink-0" />}
-                        <span className="truncate">{v.name}</span>
+                        {video.type === 'link' ? <Link2 size={14} className="shrink-0" /> : <Video size={14} className="shrink-0" />}
+                        <span className="truncate">{video.name}</span>
                       </div>
-                      <button type="button" onClick={() => removeVideo(v.id)} className="shrink-0 text-stone-400 hover:text-red-500" aria-label={`Remove ${v.name}`}>
+                      <button
+                        type="button"
+                        onClick={() => removeVideo(video.id)}
+                        className="shrink-0 text-stone-400 hover:text-red-500"
+                        aria-label={`Remove ${video.name ?? 'video'}`}
+                      >
                         <Trash2 size={14} />
                       </button>
                     </div>
@@ -746,12 +1080,23 @@ function ProjectModal({ mode, project, onClose, busy }: { mode: 'add' | 'edit' |
             </div>
           </div>
         </div>
-        {/* Fixed actions bar — stays visible while the body above scrolls */}
-        <div className="shrink-0 border-t border-stone-200 pt-0 mb-3">
+
+        <div className="mb-3 shrink-0 border-t border-stone-200 pt-0">
           <ModalActions>
-            <BtnSecondary type="button" onClick={onClose}>Cancel</BtnSecondary>
-            <BtnPrimary type="submit" disabled={busy}>
-              {busy ? 'Saving...' : mode === 'edit' ? 'Save changes' : 'Create project'}
+            <BtnSecondary type="button" onClick={onClose} disabled={busy}>
+              Cancel
+            </BtnSecondary>
+            <BtnPrimary type="submit" disabled={busy || fetchingDetail}>
+              {busy ? (
+                <span className="flex items-center gap-2">
+                  <Loader2 size={15} className="animate-spin" />
+                  Saving...
+                </span>
+              ) : mode === 'edit' ? (
+                'Save changes'
+              ) : (
+                'Create project'
+              )}
             </BtnPrimary>
           </ModalActions>
         </div>
@@ -761,7 +1106,7 @@ function ProjectModal({ mode, project, onClose, busy }: { mode: 'add' | 'edit' |
         <Lightbox
           images={lightbox.images}
           index={lightbox.index}
-          onIndexChange={(i) => setLightbox((prev) => (prev ? { ...prev, index: i } : prev))}
+          onIndexChange={(index) => setLightbox((previous) => (previous ? { ...previous, index } : previous))}
           onClose={() => setLightbox(null)}
         />
       )}
@@ -769,4 +1114,4 @@ function ProjectModal({ mode, project, onClose, busy }: { mode: 'add' | 'edit' |
   );
 }
 
-export default ProjectModal;
+export default Projects;

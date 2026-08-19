@@ -7,7 +7,6 @@ export function ProtectedRoute() {
   );
 
   const location = useLocation();
-console.log(isAuthenticated,'isAuthenticated');
 
   if (!isAuthenticated) {
     return (

@@ -41,9 +41,15 @@ import {
 import {
   Unauthorized,
 } from "../pages/Unauthorized";
+import { useEffect } from "react";
+import { useProfileStore } from "@/store/profileStore";
 
 export function AppRoutes() {
+  const getProfileDetails = useProfileStore((state) => state.getProfileDetails);
 
+  useEffect(() => {
+    getProfileDetails();
+  }, []);
   return (
     <Routes>
 

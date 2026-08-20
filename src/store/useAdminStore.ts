@@ -10,14 +10,16 @@ export type CategoryStatus = 'Active' | 'Inactive';
 
 export interface ProjectPhoto {
   id: string;
-  url: string;   // data URL (base64) so it survives store updates without a real backend
+  url: string;   // public Supabase Storage URL
+  path: string;  // storage object path, used to delete the file later
   name: string;
 }
 
 export interface ProjectVideo {
   id: string;
   type: 'file' | 'link';
-  url: string;   // blob/object URL for uploaded files, or the pasted link for 'link' type
+  url: string;         // public Supabase Storage URL for uploaded files, or the pasted link for 'link' type
+  path: string | null; // storage object path for uploaded files, null for links
   name: string;
 }
 
@@ -35,6 +37,7 @@ export interface Project {
 
   // NEW: media fields
   coverImage: string | null;
+  coverImagePath: string | null;
   photos: ProjectPhoto[];
   videos: ProjectVideo[];
 }
@@ -58,11 +61,11 @@ export interface Category {
 const wait = (ms = 700) => new Promise((resolve) => setTimeout(resolve, ms));
 
 const seedProjects: Project[] = [
-  { id: 1, name: 'Rural Healthcare Outreach Camp', description: 'Delivering accessible primary care and health education to remote communities.', category: 'Health', status: 'Published', client: 'District Health Department', date: '15 Aug 2026', updated: 'Today, 09:42', services: ['Primary care', 'Health education', 'Screening'], image: 'RH', coverImage: null, photos: [], videos: [] },
-  { id: 2, name: 'Girls in STEM Scholarship', description: 'Removing barriers and creating pathways for the next generation of women in technology.', category: 'Education', status: 'Active', client: 'GWF Foundation', date: '09 Aug 2026', updated: 'Yesterday, 16:20', services: ['Scholarships', 'Mentorship'], image: 'GS', coverImage: null, photos: [], videos: [] },
-  { id: 3, name: 'Clean Water Initiative', description: 'Building resilient water systems for families in underserved regions.', category: 'Livelihood', status: 'Published', client: 'Water For All', date: '02 Aug 2026', updated: '12 Aug 2026', services: ['Water access', 'Community training'], image: 'CW', coverImage: null, photos: [], videos: [] },
-  { id: 4, name: 'Community Learning Hub', description: 'A safe, welcoming space where children learn, connect and grow.', category: 'Education', status: 'Draft', client: 'Nairobi Community Trust', date: '28 Jul 2026', updated: '10 Aug 2026', services: ['Learning spaces', 'Digital literacy'], image: 'CL', coverImage: null, photos: [], videos: [] },
-  { id: 5, name: 'Women Build Forward', description: 'Supporting women-led enterprises with resources, training and market access.', category: 'Economic empowerment', status: 'Inactive', client: 'Forward Together', date: '18 Jul 2026', updated: '04 Aug 2026', services: ['Micro-grants', 'Enterprise support'], image: 'WB', coverImage: null, photos: [], videos: [] },
+  { id: 1, name: 'Rural Healthcare Outreach Camp', description: 'Delivering accessible primary care and health education to remote communities.', category: 'Health', status: 'Published', client: 'District Health Department', date: '15 Aug 2026', updated: 'Today, 09:42', services: ['Primary care', 'Health education', 'Screening'], image: 'RH', coverImage: null, coverImagePath: null, photos: [], videos: [] },
+  { id: 2, name: 'Girls in STEM Scholarship', description: 'Removing barriers and creating pathways for the next generation of women in technology.', category: 'Education', status: 'Active', client: 'GWF Foundation', date: '09 Aug 2026', updated: 'Yesterday, 16:20', services: ['Scholarships', 'Mentorship'], image: 'GS', coverImage: null, coverImagePath: null, photos: [], videos: [] },
+  { id: 3, name: 'Clean Water Initiative', description: 'Building resilient water systems for families in underserved regions.', category: 'Livelihood', status: 'Published', client: 'Water For All', date: '02 Aug 2026', updated: '12 Aug 2026', services: ['Water access', 'Community training'], image: 'CW', coverImage: null, coverImagePath: null, photos: [], videos: [] },
+  { id: 4, name: 'Community Learning Hub', description: 'A safe, welcoming space where children learn, connect and grow.', category: 'Education', status: 'Draft', client: 'Nairobi Community Trust', date: '28 Jul 2026', updated: '10 Aug 2026', services: ['Learning spaces', 'Digital literacy'], image: 'CL', coverImage: null, coverImagePath: null, photos: [], videos: [] },
+  { id: 5, name: 'Women Build Forward', description: 'Supporting women-led enterprises with resources, training and market access.', category: 'Economic empowerment', status: 'Inactive', client: 'Forward Together', date: '18 Jul 2026', updated: '04 Aug 2026', services: ['Micro-grants', 'Enterprise support'], image: 'WB', coverImage: null, coverImagePath: null, photos: [], videos: [] },
 ];
 
 const seedCategories: Category[] = [

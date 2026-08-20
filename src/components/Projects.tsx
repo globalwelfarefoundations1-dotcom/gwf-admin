@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { ProjectPhoto, ProjectVideo, useAdminStore, type Project, type ProjectStatus } from '../store/useAdminStore';
 import { BtnPrimary, BtnSecondary, Detail, Field, inputClass, Modal, ModalActions, SearchBar, StatusBadge } from './Shared';
+import { removeFromStorage, uploadManyToStorage, uploadToStorage } from '../lib/storage';
 
 export function Projects() {
   const { projects, categories, projectsLoading, loadProjects, deleteProject, mutating } = useAdminStore();
@@ -168,14 +169,6 @@ export function Projects() {
 
 const uid = () => Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
 
-const readAsDataURL = (file: File) =>
-  new Promise<string>((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(reader.result as string);
-    reader.onerror = () => reject(new Error('Could not read file'));
-    reader.readAsDataURL(file);
-  });
-
 /* ---------------------------------------------------------------- */
 /*  Lightbox — full-screen viewer with left / right navigation       */
 /* ---------------------------------------------------------------- */
@@ -272,7 +265,7 @@ function Lightbox({
 /* ---------------------------------------------------------------- */
 
 function ProjectModal({ mode, project, onClose, busy }: { mode: 'add' | 'edit' | 'view'; project: Project | null; onClose: () => void; busy: boolean }) {
-  const { categories, addProject, updateProject } = useAdminStore();
+  const { categories, addProject, updateProject, notify } = useAdminStore();
   const view = mode === 'view';
 
   const [name, setName] = useState(project?.name ?? '');
@@ -307,11 +300,19 @@ function ProjectModal({ mode, project, onClose, busy }: { mode: 'add' | 'edit' |
     setErrors((prev) => (error ? { ...prev, name: error } : (() => { const { name: _n, ...rest } = prev; return rest; })()));
   };
 
-  // NEW: media state
+  // NEW: media state — uploaded to Supabase Storage, url/path point at the stored object
   const [coverImage, setCoverImage] = useState<string | null>(project?.coverImage ?? null);
+  const [coverImagePath, setCoverImagePath] = useState<string | null>(project?.coverImagePath ?? null);
   const [photos, setPhotos] = useState<ProjectPhoto[]>(project?.photos ?? []);
   const [videos, setVideos] = useState<ProjectVideo[]>(project?.videos ?? []);
   const [videoLink, setVideoLink] = useState('');
+
+  // NEW: upload-in-progress state, per drop zone — disables the zone and shows a spinner
+  const [uploading, setUploading] = useState<{ cover: boolean; photos: boolean; videos: boolean }>({
+    cover: false,
+    photos: false,
+    videos: false,
+  });
 
   // NEW: drag-over highlight state, per drop zone
   const [dragOver, setDragOver] = useState<'cover' | 'photos' | 'videos' | null>(null);
@@ -323,52 +324,97 @@ function ProjectModal({ mode, project, onClose, busy }: { mode: 'add' | 'edit' |
   const photosInputRef = useRef<HTMLInputElement>(null);
   const videosInputRef = useRef<HTMLInputElement>(null);
 
-  /* ---------- cover image (single) ---------- */
+  /* ---------- cover image (single, uploaded to Supabase Storage) ---------- */
 
   const handleCoverFiles = async (files: FileList | null) => {
     const file = files?.[0];
     if (!file) return;
-    const url = await readAsDataURL(file);
-    setCoverImage(url);
+
+    const previousPath = coverImagePath;
+    setUploading((prev) => ({ ...prev, cover: true }));
+    try {
+      const { url, path } = await uploadToStorage(file, 'cover-images');
+      setCoverImage(url);
+      setCoverImagePath(path);
+      if (previousPath) removeFromStorage(previousPath).catch(() => {});
+    } catch (err) {
+      notify(err instanceof Error ? err.message : 'Could not upload cover image');
+    } finally {
+      setUploading((prev) => ({ ...prev, cover: false }));
+    }
   };
 
-  /* ---------- project photos (multiple) ---------- */
+  const removeCoverImage = () => {
+    if (coverImagePath) removeFromStorage(coverImagePath).catch(() => {});
+    setCoverImage(null);
+    setCoverImagePath(null);
+  };
+
+  /* ---------- project photos (multiple, uploaded to Supabase Storage) ---------- */
 
   const handlePhotoFiles = async (files: FileList | null) => {
     if (!files || files.length === 0) return;
-    const next: ProjectPhoto[] = await Promise.all(
-      Array.from(files).map(async (file) => ({
+    setUploading((prev) => ({ ...prev, photos: true }));
+    try {
+      const uploaded = await uploadManyToStorage(Array.from(files), 'project-photos');
+      const next: ProjectPhoto[] = uploaded.map((u, i) => ({
         id: uid(),
-        url: await readAsDataURL(file),
-        name: file.name,
-      }))
-    );
-    setPhotos((prev) => [...prev, ...next]);
+        url: u.url,
+        path: u.path,
+        name: files[i].name,
+      }));
+      setPhotos((prev) => [...prev, ...next]);
+    } catch (err) {
+      notify(err instanceof Error ? err.message : 'Could not upload photos');
+    } finally {
+      setUploading((prev) => ({ ...prev, photos: false }));
+    }
   };
 
-  const removePhoto = (id: string) => setPhotos((prev) => prev.filter((p) => p.id !== id));
+  const removePhoto = (id: string) => {
+    setPhotos((prev) => {
+      const photo = prev.find((p) => p.id === id);
+      if (photo) removeFromStorage(photo.path).catch(() => {});
+      return prev.filter((p) => p.id !== id);
+    });
+  };
 
-  /* ---------- project videos (multiple files + links) ---------- */
+  /* ---------- project videos (multiple files uploaded to Supabase Storage, or links) ---------- */
 
-  const handleVideoFiles = (files: FileList | null) => {
+  const handleVideoFiles = async (files: FileList | null) => {
     if (!files || files.length === 0) return;
-    const next: ProjectVideo[] = Array.from(files).map((file) => ({
-      id: uid(),
-      type: 'file',
-      url: URL.createObjectURL(file),
-      name: file.name,
-    }));
-    setVideos((prev) => [...prev, ...next]);
+    setUploading((prev) => ({ ...prev, videos: true }));
+    try {
+      const uploaded = await uploadManyToStorage(Array.from(files), 'project-videos');
+      const next: ProjectVideo[] = uploaded.map((u, i) => ({
+        id: uid(),
+        type: 'file',
+        url: u.url,
+        path: u.path,
+        name: files[i].name,
+      }));
+      setVideos((prev) => [...prev, ...next]);
+    } catch (err) {
+      notify(err instanceof Error ? err.message : 'Could not upload videos');
+    } finally {
+      setUploading((prev) => ({ ...prev, videos: false }));
+    }
   };
 
   const addLinkVideo = () => {
     const link = videoLink.trim();
     if (!link) return;
-    setVideos((prev) => [...prev, { id: uid(), type: 'link', url: link, name: link }]);
+    setVideos((prev) => [...prev, { id: uid(), type: 'link', url: link, path: null, name: link }]);
     setVideoLink('');
   };
 
-  const removeVideo = (id: string) => setVideos((prev) => prev.filter((v) => v.id !== id));
+  const removeVideo = (id: string) => {
+    setVideos((prev) => {
+      const video = prev.find((v) => v.id === id);
+      if (video?.path) removeFromStorage(video.path).catch(() => {});
+      return prev.filter((v) => v.id !== id);
+    });
+  };
 
   /* ---------- drag & drop plumbing ---------- */
 
@@ -407,6 +453,7 @@ function ProjectModal({ mode, project, onClose, busy }: { mode: 'add' | 'edit' |
       services: services.split(',').map((s) => s.trim()).filter(Boolean),
       image: project?.image ?? name.split(' ').map((w) => w[0]).join('').slice(0, 2).toUpperCase(),
       coverImage,
+      coverImagePath,
       photos,
       videos,
     };
@@ -605,7 +652,7 @@ function ProjectModal({ mode, project, onClose, busy }: { mode: 'add' | 'edit' |
                   />
                   <button
                     type="button"
-                    onClick={() => setCoverImage(null)}
+                    onClick={removeCoverImage}
                     className="absolute right-2 top-2 rounded-full bg-black/60 p-1.5 text-white opacity-0 transition group-hover:opacity-100"
                     aria-label="Remove cover image"
                   >
@@ -613,21 +660,22 @@ function ProjectModal({ mode, project, onClose, busy }: { mode: 'add' | 'edit' |
                   </button>
                   <button
                     type="button"
+                    disabled={uploading.cover}
                     onClick={() => coverInputRef.current?.click()}
-                    className="absolute bottom-2 right-2 rounded-full bg-black/60 px-3 py-1 text-xs text-white opacity-0 transition group-hover:opacity-100"
+                    className="absolute bottom-2 right-2 rounded-full bg-black/60 px-3 py-1 text-xs text-white opacity-0 transition group-hover:opacity-100 disabled:opacity-100"
                   >
-                    Replace
+                    {uploading.cover ? 'Uploading...' : 'Replace'}
                   </button>
                 </div>
               ) : (
                 <div
-                  className={dropZoneClass('cover')}
+                  className={`${dropZoneClass('cover')} ${uploading.cover ? 'pointer-events-none opacity-60' : ''}`}
                   {...dropHandlers('cover', handleCoverFiles)}
                   onClick={() => coverInputRef.current?.click()}
                   role="button"
                 >
-                  <Upload size={20} />
-                  <strong className="text-sm text-stone-600">Drop a cover image here, or browse</strong>
+                  {uploading.cover ? <Loader2 size={20} className="animate-spin" /> : <Upload size={20} />}
+                  <strong className="text-sm text-stone-600">{uploading.cover ? 'Uploading...' : 'Drop a cover image here, or browse'}</strong>
                   <small className="text-xs">PNG, JPG or SVG · 1600×900 works best</small>
                 </div>
               )}
@@ -637,6 +685,7 @@ function ProjectModal({ mode, project, onClose, busy }: { mode: 'add' | 'edit' |
                 type="file"
                 accept="image/*"
                 className="hidden"
+                disabled={uploading.cover}
                 onChange={(e) => handleCoverFiles(e.target.files)}
               />
             </div>
@@ -646,13 +695,13 @@ function ProjectModal({ mode, project, onClose, busy }: { mode: 'add' | 'edit' |
               <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-stone-400">PROJECT PHOTOS</div>
 
               <div
-                className={dropZoneClass('photos')}
+                className={`${dropZoneClass('photos')} ${uploading.photos ? 'pointer-events-none opacity-60' : ''}`}
                 {...dropHandlers('photos', handlePhotoFiles)}
                 onClick={() => photosInputRef.current?.click()}
                 role="button"
               >
-                <ImageIcon size={20} />
-                <strong className="text-sm text-stone-600">Drop photos here, or browse</strong>
+                {uploading.photos ? <Loader2 size={20} className="animate-spin" /> : <ImageIcon size={20} />}
+                <strong className="text-sm text-stone-600">{uploading.photos ? 'Uploading...' : 'Drop photos here, or browse'}</strong>
                 <small className="text-xs">Up to 20 images · PNG or JPG, 15MB each</small>
               </div>
 
@@ -662,6 +711,7 @@ function ProjectModal({ mode, project, onClose, busy }: { mode: 'add' | 'edit' |
                 accept="image/*"
                 multiple
                 className="hidden"
+                disabled={uploading.photos}
                 onChange={(e) => handlePhotoFiles(e.target.files)}
               />
 
@@ -694,13 +744,13 @@ function ProjectModal({ mode, project, onClose, busy }: { mode: 'add' | 'edit' |
               <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-stone-400">PROJECT VIDEOS</div>
 
               <div
-                className={dropZoneClass('videos')}
+                className={`${dropZoneClass('videos')} ${uploading.videos ? 'pointer-events-none opacity-60' : ''}`}
                 {...dropHandlers('videos', handleVideoFiles)}
                 onClick={() => videosInputRef.current?.click()}
                 role="button"
               >
-                <Video size={20} />
-                <strong className="text-sm text-stone-600">Drop videos here, or browse</strong>
+                {uploading.videos ? <Loader2 size={20} className="animate-spin" /> : <Video size={20} />}
+                <strong className="text-sm text-stone-600">{uploading.videos ? 'Uploading...' : 'Drop videos here, or browse'}</strong>
                 <small className="text-xs">MP4 or WebM up to 50MB each</small>
               </div>
 
@@ -710,6 +760,7 @@ function ProjectModal({ mode, project, onClose, busy }: { mode: 'add' | 'edit' |
                 accept="video/*"
                 multiple
                 className="hidden"
+                disabled={uploading.videos}
                 onChange={(e) => handleVideoFiles(e.target.files)}
               />
 
@@ -750,7 +801,7 @@ function ProjectModal({ mode, project, onClose, busy }: { mode: 'add' | 'edit' |
         <div className="shrink-0 border-t border-stone-200 pt-0 mb-3">
           <ModalActions>
             <BtnSecondary type="button" onClick={onClose}>Cancel</BtnSecondary>
-            <BtnPrimary type="submit" disabled={busy}>
+            <BtnPrimary type="submit" disabled={busy || uploading.cover || uploading.photos || uploading.videos}>
               {busy ? 'Saving...' : mode === 'edit' ? 'Save changes' : 'Create project'}
             </BtnPrimary>
           </ModalActions>

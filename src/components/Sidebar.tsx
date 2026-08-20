@@ -6,85 +6,110 @@ import {
   LogOut,
   UserRound,
   X,
-} from 'lucide-react';
-import { useAdminStore, type Page } from '../store/useAdminStore';
-// @ts-ignore: allow importing image asset without type declaration
+} from "lucide-react";
+
+import {
+  useLocation,
+  useNavigate,
+} from "react-router-dom";
+
+// @ts-ignore
 import Logo from "../assets/logo.png";
 
-export function SidebarBackdrop() {
-  const sidebarOpen = useAdminStore((s) => s.sidebarOpen);
-  const toggleSidebar = useAdminStore((s) => s.toggleSidebar);
+import {
+  useAdminStore,
+  type Page,
+} from "../store/useAdminStore";
 
-  if (!sidebarOpen) return null;
+import { useSidebarStore } from "../store/sidebarStore";
+
+export function SidebarBackdrop() {
+  const mobileOpen = useSidebarStore(
+    (state) => state.mobileOpen
+  );
+
+  const closeMobile = useSidebarStore(
+    (state) => state.closeMobile
+  );
+
+  if (!mobileOpen) {
+    return null;
+  }
 
   return (
     <button
+      type="button"
       aria-label="Close navigation"
-      onClick={toggleSidebar}
+      onClick={closeMobile}
       className="fixed inset-0 z-30 bg-stone-900/40 lg:hidden"
     />
   );
 }
 
 export function Sidebar() {
-  const {
-    page,
-    setPage,
-    collapsed,
-    toggleCollapsed,
-    toggleSidebar,
-    sidebarOpen,
-    logout,
-    projects,
-  } = useAdminStore();
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  const { setPage, logout } = useAdminStore();
+
+  const collapsed = useSidebarStore(
+    (state) => state.collapsed
+  );
+
+  const setCollapsed = useSidebarStore(
+    (state) => state.setCollapsed
+  );
+
+  const mobileOpen = useSidebarStore(
+    (state) => state.mobileOpen
+  );
+
+  const closeMobile = useSidebarStore(
+    (state) => state.closeMobile
+  );
 
   const nav: {
     id: Page;
     label: string;
     icon: React.ReactNode;
-    count?: number;
   }[] = [
-      {
-        id: 'dashboard',
-        label: 'Overview',
-        icon: <LayoutDashboard size={19} />,
-      },
-      {
-        id: 'projects',
-        label: 'Projects',
-        icon: <FolderKanban size={19} />,
-        count: projects.length,
-      },
-      {
-        id: 'categories',
-        label: 'Categories',
-        icon: <Grid2X2 size={19} />,
-      },
-    ];
+    {
+      id: "dashboard",
+      label: "Overview",
+      icon: <LayoutDashboard size={19} />,
+    },
+    {
+      id: "projects",
+      label: "Projects",
+      icon: <FolderKanban size={19} />,
+    },
+    {
+      id: "categories",
+      label: "Categories",
+      icon: <Grid2X2 size={19} />,
+    },
+  ];
 
-  /**
-   * Menu click behavior:
-   * - Change page
-   * - Close mobile sidebar
-   * - Collapse desktop sidebar when expanded
-   */
-  const handleMenuClick = (selectedPage: Page) => {
+  const handleMenuClick = (
+    selectedPage: Page
+  ) => {
+    // Zustand page state
     setPage(selectedPage);
 
-    // Desktop: collapse after selecting a menu item.
-    // Mobile: do not collapse because mobile should always show labels.
-    if (!collapsed) {
-      toggleCollapsed();
-    }
+    // Always use absolute path
+    navigate(`/${selectedPage}`);
 
-    // Mobile: close sidebar after selection.
-    if (sidebarOpen) {
-      toggleSidebar();
+    // Close mobile sidebar
+    closeMobile();
+
+    // Collapse sidebar on desktop
+    if (window.innerWidth >= 1024) {
+      setCollapsed(true);
     }
   };
 
   const handleProfileClick = () => {
-    handleMenuClick('profile');
+    handleMenuClick("profile");
   };
 
   return (
@@ -95,44 +120,47 @@ export function Sidebar() {
         border-r border-stone-800
         bg-stone-900 text-stone-100
         shadow-xl
+
         transition-all duration-200
 
-        /* Mobile */
         w-72
         overflow-y-auto
 
-        /* Desktop */
         lg:sticky
         lg:top-0
         lg:h-screen
         lg:overflow-hidden
         lg:translate-x-0
 
-        ${collapsed ? 'lg:w-20' : 'lg:w-72'}
+        ${
+          collapsed
+            ? "lg:w-20"
+            : "lg:w-72"
+        }
 
-        ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
+        ${
+          mobileOpen
+            ? "translate-x-0"
+            : "-translate-x-full"
+        }
       `}
     >
-      {/* Brand */}
+      {/* Logo / Header */}
       <div
         className={`
           flex min-h-[88px] shrink-0
           items-center gap-3
           px-5 py-6
-          ${collapsed ? 'lg:justify-center lg:px-3' : ''}
+
+          ${
+            collapsed
+              ? "lg:justify-center lg:px-3"
+              : ""
+          }
         `}
       >
         {/* Logo */}
-        <div
-          className="
-            flex h-10 w-10 shrink-0
-            items-center justify-center
-            rounded-full
-            bg-[#d9aa3f]
-            text-sm font-bold
-            text-stone-900
-          "
-        >
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#d9aa3f] text-sm font-bold text-stone-900">
           <img
             src={Logo}
             alt="Global Welfare Foundation"
@@ -140,14 +168,16 @@ export function Sidebar() {
           />
         </div>
 
-        {/* Brand text
-            Always visible on mobile.
-            Hidden only when desktop sidebar is collapsed.
-        */}
+        {/* Brand */}
         <div
           className={`
             flex min-w-0 flex-col leading-tight
-            ${collapsed ? 'lg:hidden' : ''}
+
+            ${
+              collapsed
+                ? "lg:hidden"
+                : ""
+            }
           `}
         >
           <strong className="whitespace-nowrap text-sm tracking-wide">
@@ -159,110 +189,111 @@ export function Sidebar() {
           </span>
         </div>
 
-        {/* Mobile close button */}
+        {/* Mobile close */}
         <button
-          onClick={toggleSidebar}
-          className="
-            ml-auto shrink-0
-            rounded-lg p-1.5
-            text-stone-400
-            hover:bg-stone-800
-            lg:hidden
-          "
+          type="button"
+          onClick={closeMobile}
+          className="ml-auto shrink-0 rounded-lg p-1.5 text-stone-400 hover:bg-stone-800 lg:hidden"
           aria-label="Close navigation"
         >
           <X size={18} />
         </button>
       </div>
 
-      {/* Workspace title
-          Always visible on mobile.
-          Hidden only when desktop is collapsed.
-      */}
+      {/* Workspace title */}
       <div
         className={`
-          shrink-0
-          px-5 pb-2
-          text-xs font-semibold tracking-wide text-stone-500
-          ${collapsed ? 'lg:hidden' : ''}
+          shrink-0 px-5 pb-2
+          text-xs font-semibold
+          tracking-wide text-stone-500
+
+          ${
+            collapsed
+              ? "lg:hidden"
+              : ""
+          }
         `}
       >
         WORKSPACE
       </div>
 
-      {/* Main Navigation */}
+      {/* Navigation */}
       <nav className="flex shrink-0 flex-col gap-1 px-3">
-        {nav.map((item) => (
-          <button
-            key={item.id}
-            onClick={() => handleMenuClick(item.id)}
-            title={collapsed ? item.label : undefined}
-            className={`
-              flex w-full
-              items-center gap-3
-              rounded-lg
-              px-3 py-2.5
-              text-sm font-medium
-              transition-colors
+        {nav.map((item) => {
+          const isActive =
+            location.pathname ===
+            `/${item.id}`;
 
-              ${page === item.id
-                ? 'bg-[#d9aa3f] text-stone-900'
-                : 'text-stone-300 hover:bg-stone-800'
+          return (
+            <button
+              key={item.id}
+              type="button"
+              onClick={() =>
+                handleMenuClick(item.id)
               }
-
-              /* Only center icons on collapsed desktop */
-              ${collapsed ? 'lg:justify-center' : ''}
-            `}
-          >
-            <span className="shrink-0">
-              {item.icon}
-            </span>
-
-            {/* Menu text
-                Always visible on mobile.
-                Hidden only on collapsed desktop.
-            */}
-            <span
+              title={
+                collapsed
+                  ? item.label
+                  : undefined
+              }
               className={`
-                flex min-w-0 flex-1
-                text-left
-                ${collapsed ? 'lg:hidden' : ''}
+                flex w-full
+                items-center gap-3
+                rounded-lg
+                px-3 py-2.5
+                text-sm font-medium
+                transition-colors
+
+                ${
+                  isActive
+                    ? "bg-[#d9aa3f] text-stone-900"
+                    : "text-stone-300 hover:bg-stone-800"
+                }
+
+                ${
+                  collapsed
+                    ? "lg:justify-center"
+                    : ""
+                }
               `}
             >
-              {item.label}
-            </span>
+              <span className="shrink-0">
+                {item.icon}
+              </span>
 
-            {/* Count */}
-            {item.count !== undefined && (
               <span
                 className={`
-                  shrink-0
-                  rounded-full
-                  bg-stone-800/60
-                  px-2 py-0.5
-                  text-xs text-stone-300
+                  flex min-w-0 flex-1
+                  text-left
 
-                  ${collapsed ? 'lg:hidden' : ''}
+                  ${
+                    collapsed
+                      ? "lg:hidden"
+                      : ""
+                  }
                 `}
               >
-                {item.count}
+                {item.label}
               </span>
-            )}
-          </button>
-        ))}
+            </button>
+          );
+        })}
       </nav>
 
-      {/* Bottom / Account Section */}
+      {/* Bottom */}
       <div className="mt-auto flex shrink-0 flex-col gap-1 px-3 pb-6 pt-6">
-        {/* Account title
-            Always visible on mobile.
-            Hidden only when desktop is collapsed.
-        */}
+        {/* Account title */}
         <div
           className={`
             px-2 pb-2
-            text-xs font-semibold tracking-wide text-stone-500
-            ${collapsed ? 'lg:hidden' : ''}
+            text-xs font-semibold
+            tracking-wide text-stone-500
+
+            ${
+              collapsed
+                ? "lg:hidden"
+                : ""
+            }
           `}
         >
           ACCOUNT
@@ -270,8 +301,13 @@ export function Sidebar() {
 
         {/* Profile */}
         <button
+          type="button"
           onClick={handleProfileClick}
-          title={collapsed ? 'My profile' : undefined}
+          title={
+            collapsed
+              ? "My profile"
+              : undefined
+          }
           className={`
             flex w-full
             items-center gap-3
@@ -280,32 +316,48 @@ export function Sidebar() {
             text-sm font-medium
             transition-colors
 
-            ${page === 'profile'
-              ? 'bg-[#d9aa3f] text-stone-900'
-              : 'text-stone-300 hover:bg-stone-800'
+            ${
+              location.pathname === "/profile"
+                ? "bg-[#d9aa3f] text-stone-900"
+                : "text-stone-300 hover:bg-stone-800"
             }
 
-            ${collapsed ? 'lg:justify-center' : ''}
+            ${
+              collapsed
+                ? "lg:justify-center"
+                : ""
+            }
           `}
         >
-          <UserRound size={19} className="shrink-0" />
+          <UserRound
+            size={19}
+            className="shrink-0"
+          />
 
           <span
-            className={`
-              ${collapsed ? 'lg:hidden' : ''}
-            `}
+            className={
+              collapsed
+                ? "lg:hidden"
+                : ""
+            }
           >
             My profile
           </span>
         </button>
 
-        {/* Desktop Collapse / Expand */}
+        {/* Collapse desktop */}
         <button
-          onClick={toggleCollapsed}
-          title={collapsed ? 'Expand menu' : 'Collapse menu'}
+          type="button"
+          onClick={() =>
+            setCollapsed(!collapsed)
+          }
+          title={
+            collapsed
+              ? "Expand menu"
+              : "Collapse menu"
+          }
           className="
-            mt-3
-            hidden
+            mt-3 hidden
             items-center gap-3
             rounded-lg
             px-3 py-2.5
@@ -320,8 +372,14 @@ export function Sidebar() {
             strokeWidth={3}
             className={`
               shrink-0
-              transition-transform duration-200
-              ${collapsed ? 'rotate-180' : ''}
+              transition-transform
+              duration-200
+
+              ${
+                collapsed
+                  ? "rotate-180"
+                  : ""
+              }
             `}
           />
 
@@ -334,8 +392,13 @@ export function Sidebar() {
 
         {/* Logout */}
         <button
+          type="button"
           onClick={logout}
-          title={collapsed ? 'Sign out' : undefined}
+          title={
+            collapsed
+              ? "Sign out"
+              : undefined
+          }
           className={`
             flex w-full
             items-center gap-3
@@ -345,15 +408,24 @@ export function Sidebar() {
             text-red-400
             hover:bg-stone-800
 
-            ${collapsed ? 'lg:justify-center' : ''}
+            ${
+              collapsed
+                ? "lg:justify-center"
+                : ""
+            }
           `}
         >
-          <LogOut size={18} className="shrink-0" />
+          <LogOut
+            size={18}
+            className="shrink-0"
+          />
 
           <span
-            className={`
-              ${collapsed ? 'lg:hidden' : ''}
-            `}
+            className={
+              collapsed
+                ? "lg:hidden"
+                : ""
+            }
           >
             Sign out
           </span>

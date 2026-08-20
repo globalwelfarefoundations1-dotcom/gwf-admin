@@ -3,8 +3,7 @@ import App from './App';
 import { useAdminStore } from './store/useAdminStore';
 
 function Root() {
-  const authed = useAdminStore((state) => state.authed);
-  return authed ? <App /> : <Login />;
+  return <App />;
 }
 
 export default Root;

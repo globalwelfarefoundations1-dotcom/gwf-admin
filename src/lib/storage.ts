@@ -30,3 +30,22 @@ export async function removeFromStorage(path: string): Promise<void> {
   const { error } = await supabase.storage.from(STORAGE_BUCKET).remove([path]);
   if (error) throw new Error(`Delete failed: ${error.message}`);
 }
+
+/**
+ * Recovers the storage object path from a public URL previously returned by
+ * uploadToStorage, so callers only need to hold on to the URL (the shape the
+ * backend's project record stores) rather than tracking path separately.
+ */
+export function pathFromPublicUrl(url: string): string | null {
+  const marker = `/storage/v1/object/public/${STORAGE_BUCKET}/`;
+  const index = url.indexOf(marker);
+  if (index === -1) return null;
+  return decodeURIComponent(url.slice(index + marker.length));
+}
+
+/** Best-effort delete: no-ops for URLs that aren't objects in our bucket (e.g. pasted video links). */
+export async function removeIfManaged(url: string): Promise<void> {
+  const path = pathFromPublicUrl(url);
+  if (!path) return;
+  await removeFromStorage(path).catch(() => {});
+}

@@ -6,132 +6,80 @@ import {
 
 import Login from "../components/Login";
 
-import {
-  DashboardPage,
-} from "../pages/dashboard";
+import { DashboardPage } from "../pages/dashboard";
+import { ProjectPage } from "../pages/projects";
+import { CategoryPage } from "../pages/categories";
+import { ProfilePage } from "../pages/profile";
 
-import {
-  ProjectPage,
-} from "../pages/projects";
+import { ProtectedRoute } from "./ProtectedRoute";
+import { AdminRoute } from "./RouteGuard";
+import { AdminLayout } from "../layouts/AdminLayout";
 
-import {
-  CategoryPage,
-} from "../pages/categories";
+import { NotFound } from "../pages/NotFound";
+import { Unauthorized } from "../pages/Unauthorized";
 
-import {
-  ProfilePage,
-} from "../pages/profile";
-
-import {
-  ProtectedRoute,
-} from "./ProtectedRoute";
-
-import {
-  AdminRoute,
-} from "./RouteGuard";
-
-import {
-  AdminLayout,
-} from "../layouts/AdminLayout";
-
-import {
-  NotFound,
-} from "../pages/NotFound";
-
-import {
-  Unauthorized,
-} from "../pages/Unauthorized";
 import { useEffect } from "react";
 import { useProfileStore } from "@/store/profileStore";
 
 export function AppRoutes() {
-  const getProfileDetails = useProfileStore((state) => state.getProfileDetails);
+  const getProfileDetails = useProfileStore(
+    (state) => state.getProfileDetails
+  );
+
+  // Example: change this based on your actual auth store
+  const token = localStorage.getItem("gwf_access_token");
 
   useEffect(() => {
-    getProfileDetails();
-  }, []);
+    if (token) {
+      getProfileDetails();
+    }
+  }, [token, getProfileDetails]);
+
   return (
     <Routes>
-
-      {/* ================================================== */}
-      {/* PUBLIC */}
-      {/* ================================================== */}
+      {/* ================= PUBLIC ================= */}
 
       <Route
         path="/login"
         element={<Login />}
       />
 
-      {/* ================================================== */}
-      {/* PROTECTED */}
-      {/* ================================================== */}
+      {/* ================= PROTECTED ================= */}
 
-      <Route
-        element={
-          <ProtectedRoute />
-        }
-      >
-
-        <Route
-          element={
-            <AdminRoute />
-          }
-        >
-
-          <Route
-            element={
-              <AdminLayout />
-            }
-          >
-
+      <Route element={<ProtectedRoute />}>
+        <Route element={<AdminRoute />}>
+          <Route element={<AdminLayout />}>
             <Route
               path="/dashboard"
-              element={
-                <DashboardPage />
-              }
+              element={<DashboardPage />}
             />
 
             <Route
               path="/projects"
-              element={
-                <ProjectPage />
-              }
+              element={<ProjectPage />}
             />
 
             <Route
               path="/categories"
-              element={
-                <CategoryPage />
-              }
+              element={<CategoryPage />}
             />
 
             <Route
               path="/profile"
-              element={
-                <ProfilePage />
-              }
+              element={<ProfilePage />}
             />
-
           </Route>
-
         </Route>
-
       </Route>
 
-      {/* ================================================== */}
-      {/* UNAUTHORIZED */}
-      {/* ================================================== */}
+      {/* ================= UNAUTHORIZED ================= */}
 
       <Route
         path="/unauthorized"
-        element={
-          <Unauthorized />
-        }
+        element={<Unauthorized />}
       />
 
-      {/* ================================================== */}
-      {/* ROOT */}
-      {/* ================================================== */}
+      {/* ================= ROOT ================= */}
 
       <Route
         path="/"
@@ -143,17 +91,12 @@ export function AppRoutes() {
         }
       />
 
-      {/* ================================================== */}
-      {/* 404 */}
-      {/* ================================================== */}
+      {/* ================= 404 ================= */}
 
       <Route
         path="*"
-        element={
-          <NotFound />
-        }
+        element={<NotFound />}
       />
-
     </Routes>
   );
 }

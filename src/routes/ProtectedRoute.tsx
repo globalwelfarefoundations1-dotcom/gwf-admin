@@ -7,8 +7,9 @@ export function ProtectedRoute() {
   );
 
   const location = useLocation();
+    const token = localStorage.getItem("gwf_access_token");
 
-  if (!isAuthenticated) {
+  if (!isAuthenticated||!token) {
     return (
       <Navigate
         to="/login"
